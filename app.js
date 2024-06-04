@@ -1,9 +1,12 @@
 const express = require('express');
 const mysql = require('mysql2');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 const port = 3000;
-
 const app = express();
+
+
 
 const db = mysql.createConnection({
     host: 'localhost',     // Replace with your database host
@@ -51,6 +54,42 @@ app.get('/signup', (req, res) => {
 
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+
+const upload = multer({
+    dest: 'uploads/',
+    limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
+});
+
+
+// TODO: Backend checking: need to check again if all fields are valid
+app.post('/signup', upload.single('profilepic'), async (req, res) => {
+    const { firstname, lastname, email, number, password, confirmpassword } = req.body;
+    const profilepic = req.file;
+
+    if (!profilepic) {
+        return res.status(400).send('Profile picture is required');
+    }
+
+    try{
+        const fileType = await import('file-type');
+        const fileBuffer = fs.readFileSync(profilepic.path);
+        const fileTypeResult = await fileType.fileTypeFromBuffer(fileBuffer);
+        if (!fileTypeResult || !fileTypeResult.mime.startsWith('image/')) {
+            fs.unlinkSync(profilepic.path); // Delete the invalid file
+            return res.status(400).send('Invalid img');
+        }
+        else{
+            console.log('Valid img')
+        }
+    }catch(err){
+        console.error('Error loading file-type module or processing image: ', err);
+        // res.status(500).send('Server error');
+    }
 });
 
 
