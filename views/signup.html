@@ -9,39 +9,152 @@
 <body>
     <div class="container">
         <h1 class="mt-5">Signup</h1>
-        <form action="/signup" method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="profilePic">Profile Picture</label>
-            <input type="file" class="form-control" id="profilepic" name="profilepic" required>
-        </div>
-        <div class="form-group">
-            <label for="lastname">Last Name</label>
-            <input type="text" class="form-control" id="firstname" name="firstname" required>
-        </div>
-        <div class="form-group">
-            <label for="firstname">First Name</label>
-            <input type="text" class="form-control" id="lastname" name="lastname" required>
-        </div>
-        <div class="form-group">
-            <label for="email">Email address</label>
-            <input type="email" class="form-control" id="email" name="email" required>
-        </div>
-        <div class="form-group">
-            <label for="number">Mobile Number</label>
-            <input type="tel" class="form-control" id="number" name="number" required>
-        </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-        </div>
-        <div class="form-group">
-            <label for="password">Confirm Password</label>
-            <input type="password" class="form-control" id="confirmpassword" name="confirmpassword" required>
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Signup</button>
-        <!-- <button type="submit" class="btn btn-secondary mt-3" id='btn-home'>Home</a> -->
+        <form id="signupForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="profilePic">Profile Picture</label>
+                <input type="file" class="form-control" id="profilepic" name="profilepic" required>
+                <div class="invalid-feedback" id="profilepicError"></div>
+            </div>
+            <div class="form-group">
+                <label for="lastname">Last Name</label>
+                <input type="text" class="form-control" id="lastname" name="lastname" required>
+                <div class="invalid-feedback" id="lastnameError"></div>
+            </div>
+            <div class="form-group">
+                <label for="firstname">First Name</label>
+                <input type="text" class="form-control" id="firstname" name="firstname" required>
+                <div class="invalid-feedback" id="firstnameError"></div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+                <div class="invalid-feedback" id="emailError"></div>
+            </div>
+            <div class="form-group">
+                <label for="number">Mobile Number</label>
+                <input type="tel" class="form-control" id="number" name="number" required>
+                <div class="invalid-feedback" id="numberError"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="invalid-feedback" id="passwordError"></div>
+            </div>
+            <div class="form-group">
+                <label for="confirmpassword">Confirm Password</label>
+                <input type="password" class="form-control" id="confirmpassword" name="confirmpassword" required>
+                <div class="invalid-feedback" id="confirmpasswordError"></div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3" id="signupButton">Signup</button>
         </form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('signupForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                const form = event.target;
+                const formData = new FormData(form);
+                const button = document.getElementById('signupButton');
+
+                // Reset previous error states
+                button.style.backgroundColor = '';
+                document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
+
+                // Client-side validation
+                let isValid = true;
+
+                // Profile Picture
+                const profilepic = formData.get('profilepic');
+                if (!profilepic) {
+                    isValid = false;
+                    document.getElementById('profilepicError').textContent = 'Profile picture is required.';
+                    document.getElementById('profilepic').classList.add('is-invalid');
+                }
+
+                // Last Name
+                const lastname = formData.get('lastname');
+                if (!/^[A-Za-z]{1,20}$/.test(lastname)) {
+                    isValid = false;
+                    document.getElementById('lastnameError').textContent = 'Last name must be up to 20 English letters.';
+                    document.getElementById('lastname').classList.add('is-invalid');
+                }
+
+                // First Name
+                const firstname = formData.get('firstname');
+                if (!/^[A-Za-z]{1,20}$/.test(firstname)) {
+                    isValid = false;
+                    document.getElementById('firstnameError').textContent = 'First name must be up to 20 English letters.';
+                    document.getElementById('firstname').classList.add('is-invalid');
+                }
+
+                // Email
+                const email = formData.get('email');
+                if (!/^[a-zA-Z\d]+([._-][a-zA-Z\d]+)*@[-a-zA-z\d]+(\.[-a-zA-Z\d]+)*\.[a-zA-z]{2,}$/.test(email)) {
+                    isValid = false;
+                    document.getElementById('emailError').textContent = 'Email format is invalid.';
+                    document.getElementById('email').classList.add('is-invalid');
+                }
+
+                // Mobile Number
+                const number = formData.get('number');
+                if (!/^(\+63|0)\d{10}$/.test(number)) {
+                    isValid = false;
+                    document.getElementById('numberError').textContent = 'Mobile number format is invalid.';
+                    document.getElementById('number').classList.add('is-invalid');
+                }
+
+                // Password
+                const password = formData.get('password');
+                if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password)) {
+                    isValid = false;
+                    document.getElementById('passwordError').textContent = 'Password must be 12-63 characters long and include at least one number, one uppercase letter, one lowercase letter, and one special character (@._-!?).';
+                    document.getElementById('password').classList.add('is-invalid');
+                }
+
+                // Confirm Password
+                const confirmpassword = formData.get('confirmpassword');
+                if (password !== confirmpassword) {
+                    isValid = false;
+                    document.getElementById('confirmpasswordError').textContent = 'Passwords do not match.';
+                    document.getElementById('confirmpassword').classList.add('is-invalid');
+                }
+
+                if (isValid) {
+                    try {
+                        const response = await fetch('/signup', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            const errors = await response.json();
+                            button.style.backgroundColor = 'red';
+
+                            for (const [key, value] of Object.entries(errors)) {
+                                const errorElement = document.getElementById(`${key}Error`);
+                                const inputElement = document.getElementById(key);
+                                if (errorElement) {
+                                    errorElement.textContent = value;
+                                }
+                                if (inputElement) {
+                                    inputElement.classList.add('is-invalid');
+                                }
+                            }
+                        } else {
+                            alert('Signup successful');
+                            window.location.href = '/login';
+                        }
+                    } catch (err) {
+                        console.error('Error:', err);
+                    }
+                } else {
+                    button.style.backgroundColor = 'red';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

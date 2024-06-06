@@ -13,7 +13,7 @@ const saltRounds = 10;
 const db = mysql.createConnection({
     host: 'localhost',     // Replace with your database host
     user: 'root',          // Replace with your database user
-    password: 'Pass1234!',  // Replace with your database password
+    password: 'admin',  // Replace with your database password
     database: 'mydb'    // Replace with your database name
 });
 
