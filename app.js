@@ -6,7 +6,7 @@ const port = 3000;
 const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const {addUser} = require('./db');
+const {addUser, checkUser} = require('./db');
 // Serve static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -86,7 +86,36 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	}
 });
 
+app.post('/login', upload.none(), async(req, res)=>{
+	const {email, password} = req.body
+	checkUser({email})
+		.then(hash=>{
+			if(hash===false){
+				//No email found
+				console.log('No email found')
+				return res.status(400).json({password:'Invalid login'})
+			}
+			
+			bcrypt.compare(password, hash, function(err, result) {
+				console.log(typeof(hash))
+				if(err){
+					console.log(err)
+					return res.status(200).send()
+				}
+				if(result===true){
+					//correct password
+					console.log('correct password')
+					return res.status(200).send()
+				}else{
+					console.log('wrong password')
+					return res.status(400).send()
+				}
+			});
+		}).catch(err=>{
+			console.log(err)
+		})
 
+})
 app.listen(port, () => {
 	console.log(`Server is running on http://localhost:${port}`);
 });

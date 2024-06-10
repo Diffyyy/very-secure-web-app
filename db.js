@@ -22,6 +22,22 @@ class dbError extends Error{
 		this.code = code
 	}
 }
+const checkUser = ({email})=>{
+	return new Promise((resolve,reject)=>{
+		const checkEmail = 'SELECT password FROM user WHERE email = ?'
+		db.execute(checkEmail, [email], (error, results)=>{
+			if(error){
+				return reject(new dbError('Error occurred while checkingEmail', -1))
+			}
+			if ( results.length > 0 ){
+				return resolve(results[0].password)	
+			}else{
+				return resolve(false)
+			}
+		})
+	})
+}
+
 const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 	return new Promise((resolve, reject) => {
 		return db.beginTransaction(err => {
@@ -78,4 +94,4 @@ const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser};
+module.exports = {addUser, checkUser};
