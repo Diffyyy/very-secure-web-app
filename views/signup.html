@@ -129,8 +129,10 @@
                             body: formData
                         });
 
+						console.log(response)
                         if (!response.ok) {
                             const errors = await response.json();
+							console.log(errors)
                             button.style.backgroundColor = 'red';
 
                             for (const [key, value] of Object.entries(errors)) {
