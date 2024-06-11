@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session')
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
@@ -13,9 +14,44 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Middleware to parse request bodies
 app.use(express.urlencoded({ extended: true }));
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views')); // Set the views directory to the current directory
+//middleware function for debugging session
+function logBeforeSession(req, res, next){
+	console.log('-------------------------------------')
+	console.log('BEFORE SESSION MIDDLEWARE: ')
+	console.log(req.session)
+	console.log('-------------------------------------')
+	next()
+}
+
+function logAfterSession(req, res, next){
+	console.log('-------------------------------------')
+	console.log('AFTER SESSION MIDDLEWARE: ')
+	console.log(req.session)
+	console.log('-------------------------------------')
+	next()
+}
+app.use(logBeforeSession)
+app.use(session({
+	//TODO: Change secret to env file secret
+	secret: 'keyboard cat',
+	resave: false,
+	saveUninitialized: true
+}))
+app.use(logAfterSession)
+const upload = multer({
+	dest: 'uploads/',
+	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
+});
 // Routes
 app.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname, 'views', 'index.html'));
+	console.log(req.session)
+	if(req.session && req.session.user){
+		res.render('user', {email: req.session.user.email })
+	}else{
+		res.sendFile(path.join(__dirname, 'views', 'index.html'));
+	}
 });
 
 app.get('/login', (req, res) => {
@@ -31,15 +67,6 @@ app.get('/admin', (req, res) => {
 });
 
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-
-const upload = multer({
-	dest: 'uploads/',
-	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
-});
-
-//function for adding user
 // TODO: Backend checking: need to check again if all fields are valid
 // FIXME: if want a button that goes back to home, need to change this else ok
 app.post('/signup', upload.single('profilepic'), async (req, res) => {
@@ -100,12 +127,20 @@ app.post('/login', upload.none(), async(req, res)=>{
 				console.log(typeof(hash))
 				if(err){
 					console.log(err)
-					return res.status(200).send()
+					return res.status(400).send()
 				}
 				if(result===true){
 					//correct password
 					console.log('correct password')
-					return res.status(200).send()
+					req.session.regenerate(function (err) {
+						if (err) next(err)
+						req.session.user = {email: email}
+						req.session.save(function (err) {
+							if (err) return next(err)
+
+							res.redirect('/')
+						})
+					})
 				}else{
 					console.log('wrong password')
 					return res.status(400).send()
@@ -114,6 +149,20 @@ app.post('/login', upload.none(), async(req, res)=>{
 		}).catch(err=>{
 			console.log(err)
 		})
+	
+
+})
+app.post('/logout', upload.none(), async(req, res, next)=>{
+	req.session.user = null
+	req.session.save(function (err) {
+		if (err) next(err)
+		// regenerate the session, which is good practice to help
+		// guard against forms of session fixation
+		req.session.regenerate(function (err) {
+			if (err) next(err)
+			res.status(200).send()
+		})
+	})
 
 })
 app.listen(port, () => {

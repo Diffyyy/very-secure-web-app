@@ -49,14 +49,15 @@
 						if (errorElement) {
 							//console.log(errorElement)
 							errorElement.textContent = 'Invalid login';
-
+							
                     		document.getElementById('email').classList.add('is-invalid');
 
 							document.getElementById('password').classList.add('is-invalid');
 						}
 					} else {
+						//console.log(response)
 						alert('Login successful');
-						window.location.href = '/index';
+						window.location.href = '/';
 					}
 				} catch (err) {
 					//console.error('Error:', err);
