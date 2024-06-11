@@ -37,7 +37,8 @@ app.use(session({
 	//TODO: Change secret to env file secret
 	secret: 'keyboard cat',
 	resave: false,
-	saveUninitialized: true
+	saveUninitialized: true,
+	cookie: {maxAge: 60000}
 }))
 app.use(logAfterSession)
 const upload = multer({
