@@ -24,20 +24,35 @@ class dbError extends Error{
 }
 const checkUser = ({email})=>{
 	return new Promise((resolve,reject)=>{
-		const checkEmail = 'SELECT password FROM user WHERE email = ?'
+		const checkEmail = 'SELECT id, password FROM user WHERE email = ?'
 		db.execute(checkEmail, [email], (error, results)=>{
 			if(error){
 				return reject(new dbError('Error occurred while checkingEmail', -1))
 			}
 			if ( results.length > 0 ){
-				return resolve(results[0].password)	
+				return resolve(results[0])	
 			}else{
 				return resolve(false)
 			}
 		})
 	})
 }
-
+const getUserInfo = ({id}) =>{
+	return new Promise((resolve, reject)=>{
+		const query = 'SELECT firstname, lastname, email, phone, pfp FROM user WHERE id = ?' 
+		console.log(id)
+		db.execute(query, [id], (error, results)=>{
+			if(error){
+				return reject(new dbError('Error occurred while getting user', -1))
+			}
+			if(results.length > 0){
+				return resolve(results[0])
+			}else{
+				return resolve(false)
+			}
+		})
+	})
+}
 const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 	return new Promise((resolve, reject) => {
 		return db.beginTransaction(err => {
@@ -94,4 +109,4 @@ const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser};
+module.exports = {addUser, checkUser, getUserInfo};
