@@ -1,5 +1,6 @@
 const express = require('express');
-const session = require('express-session')
+const session = require('express-session');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
@@ -41,10 +42,18 @@ app.use(session({
 	cookie: {maxAge: 60000}
 }))
 app.use(logAfterSession)
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  
+  max: 3,
+  message: 'Too many login attempts, please try again after 15 minutes',
+});
+
 const upload = multer({
 	dest: 'uploads/',
 	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
 });
+
 // Routes
 app.get('/', (req, res) => {
 	console.log(req.session)
@@ -114,14 +123,14 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	}
 });
 
-app.post('/login', upload.none(), async(req, res)=>{
+app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	const {email, password} = req.body
 	checkUser({email})
 		.then(hash=>{
 			if(hash===false){
 				//No email found
 				console.log('No email found')
-				return res.status(400).json({password:'Invalid login'})
+				return res.status(400).json({password:'Invalid login credentials'})
 			}
 			
 			bcrypt.compare(password, hash, function(err, result) {
