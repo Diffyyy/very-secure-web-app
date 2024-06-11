@@ -8,10 +8,10 @@ const port = 3000;
 const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const {addUser, checkUser} = require('./db');
+const {addUser, checkUser, getUserInfo} = require('./db');
 // Serve static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Middleware to parse request bodies
 app.use(express.urlencoded({ extended: true }));
 
@@ -56,9 +56,14 @@ const upload = multer({
 
 // Routes
 app.get('/', (req, res) => {
-	console.log(req.session)
 	if(req.session && req.session.user){
-		res.render('user', {email: req.session.user.email })
+		getUserInfo({id: req.session.user.id}).then(user =>{
+			if(user===false){
+				return res.status(400).send('Invalid user')
+			}
+			console.log(user)	
+			res.render('user', user)
+		})
 	}else{
 		res.sendFile(path.join(__dirname, 'views', 'index.html'));
 	}
@@ -80,7 +85,7 @@ app.get('/admin', (req, res) => {
 // TODO: Backend checking: need to check again if all fields are valid
 // FIXME: if want a button that goes back to home, need to change this else ok
 app.post('/signup', upload.single('profilepic'), async (req, res) => {
-	const { firstname, lastname, email, number, password, confirmpassword } = req.body;
+	const { lastname, firstname, email, number, password, confirmpassword } = req.body;
 	const formData = { firstname, lastname, email, number };
 	const profilepic = req.file;
 
@@ -106,7 +111,7 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 			const hash = bcrypt.hashSync(password,saltRounds)
 			
 			//TODO: Change pfp_path here
-			addUser({firstname, lastname, email, number, password: hash, pfp:'PFP_PATH'})
+			addUser({firstname, lastname, email, number, password: hash, pfp:profilepic.path})
 				.then(result=>{
 					console.log(result)
 					res.redirect('/login')
@@ -126,15 +131,14 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	const {email, password} = req.body
 	checkUser({email})
-		.then(hash=>{
-			if(hash===false){
+		.then(user=>{
+			if(user===false){
 				//No email found
 				console.log('No email found')
 				return res.status(400).json({password:'Invalid login credentials'})
 			}
 			
-			bcrypt.compare(password, hash, function(err, result) {
-				console.log(typeof(hash))
+			bcrypt.compare(password, user.password, function(err, result) {
 				if(err){
 					console.log(err)
 					return res.status(400).send()
@@ -144,7 +148,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					console.log('correct password')
 					req.session.regenerate(function (err) {
 						if (err) next(err)
-						req.session.user = {email: email}
+						req.session.user = {id: user.id}
 						req.session.save(function (err) {
 							if (err) return next(err)
 
