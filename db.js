@@ -30,13 +30,23 @@ const checkUser = ({email})=>{
 				return reject(new dbError('Error occurred while checkingEmail', -1))
 			}
 			if ( results.length > 0 ){
-				return resolve(results[0])	
+				const user = results[0]
+				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+				db.execute(checkAdmin, [user.id], (error, results) => {
+                    if (error) {
+                        return reject(new dbError('Error occurred while checking admin', -1));
+                    }
+                    user.isAdmin = results.length > 0;
+                    return resolve(user);
+                });
 			}else{
 				return resolve(false)
 			}
 		})
 	})
 }
+
+
 const getUserInfo = ({id}) =>{
 	return new Promise((resolve, reject)=>{
 		const query = 'SELECT firstname, lastname, email, phone, pfp FROM user WHERE id = ?' 

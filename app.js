@@ -61,8 +61,14 @@ app.get('/', (req, res) => {
 			if(user===false){
 				return res.status(400).send('Invalid user')
 			}
-			console.log(user)	
-			res.render('user', user)
+			console.log(user)
+			if(req.session.user.isAdmin){
+				res.render('admin', user); 
+			}
+			else{
+				res.render('user', user)
+			}	
+			
 		})
 	}else{
 		res.sendFile(path.join(__dirname, 'views', 'index.html'));
@@ -81,9 +87,6 @@ app.get('/admin', (req, res) => {
 	res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 });
 
-
-// TODO: Backend checking: need to check again if all fields are valid
-// FIXME: if want a button that goes back to home, need to change this else ok
 app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	const { lastname, firstname, email, number, password, confirmpassword } = req.body;
 	const formData = { firstname, lastname, email, number };
@@ -148,11 +151,13 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					console.log('correct password')
 					req.session.regenerate(function (err) {
 						if (err) next(err)
-						req.session.user = {id: user.id}
+						req.session.user = {id: user.id, isAdmin: user.isAdmin}
 						req.session.save(function (err) {
 							if (err) return next(err)
-
+							
+							
 							res.redirect('/')
+
 						})
 					})
 				}else{
