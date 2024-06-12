@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
@@ -36,10 +37,10 @@ function logAfterSession(req, res, next){
 app.use(logBeforeSession)
 app.use(session({
 	//TODO: Change secret to env file secret
-	secret: 'keyboard cat',
-	resave: false,
-	saveUninitialized: true,
-	cookie: {maxAge: 60000}
+	secret: process.env.SESSION_SECRET,
+	resave: process.env.SESSION_RESAVE,
+	saveUninitialized: process.env.SESSION_SAVE_UNINITIALIZED,
+	cookie: {maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE)}
 }))
 app.use(logAfterSession)
 
