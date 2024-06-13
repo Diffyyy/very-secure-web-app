@@ -43,14 +43,21 @@
 						body: formData
 					});
 					//console.log(response)
+					console.log(response)
 					if (!response.ok) {
+
 						const errorElement = document.getElementById('invalid-login')
 						//const inputElement = document.getElementById();
 						if (errorElement) {
-							//console.log(errorElement)
-							errorElement.textContent = 'Invalid login';
+									//console.log(errorElement)
+							if(response.status===400){
+								errorElement.textContent = 'Invalid Login Credentials';
+							}else if(response.status===429){
+								errorElement.textContent = 'Too many requests'
+							}else{
+								errorElement.textContent = 'Unknown error'
+							}
 							
-                    		document.getElementById('email').classList.add('is-invalid');
 
 							document.getElementById('password').classList.add('is-invalid');
 						}

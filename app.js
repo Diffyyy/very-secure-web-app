@@ -111,6 +111,28 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 			return res.status(400).json({profilepic: 'Invalid image file'})
 		}
 		else{ //Signup success
+
+			if (!/^[A-Za-z]{1,20}$/.test(lastname)) {
+				return res.status(400).json({lastname: 'Last name must be up to 20 English letters.'})
+			}
+			if (!/^[A-Za-z]{1,20}$/.test(firstname)) {
+				return res.status(400).json({firstname: 'First name must be up to 20 English letters.'})
+			}
+
+			if (!/^[a-zA-Z\d]+([._-][a-zA-Z\d]+)*@[-a-zA-z\d]+(\.[-a-zA-Z\d]+)*\.[a-zA-z]{2,}$/.test(email)) {
+				return res.status(400).json({email: 'Email format is invalid.'})
+			}
+
+			if (!/^(\+63|0)\d{10}$/.test(number)) {
+				return res.status(400).json({number: 'Mobile number format is invalid.'})
+			}
+
+			if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password)) {
+				return res.status(400).json({password: 'Password must be 12-63 characters long and include at least one number, one uppercase letter, one lowercase letter, and one special character (@._-!?).'})
+			}
+			if(password !== confirmpassword){
+				return res.status(400).json({confirmpassword: 'Passwords do not match'})
+			}
 			const hash = bcrypt.hashSync(password,saltRounds)
 			
 			//TODO: Change pfp_path here
@@ -137,7 +159,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 			if(user===false){
 				//No email found
 				console.log('No email found')
-				return res.status(400).json({password:'Invalid login credentials'})
+				return res.status(400).send('Invalid login credentials')
 			}
 			
 			bcrypt.compare(password, user.password, function(err, result) {
