@@ -6,6 +6,7 @@ const db = mysql.createConnection({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME
 });
+console.log(process.env)
 
 // Connect to the database
 db.connect(err => {
@@ -83,23 +84,22 @@ const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 					return reject(new dbError('User already existing', 0))
 				}
 				
-			})
-			const query = 'SELECT MAX(id) AS maxId FROM user';
-			//For now, add random number to max id to create new id
-			db.query(query, (error, results) => {
-				if (error) {
-					return db.rollback(()=>{
-						return reject(new dbError('Error occurred while executing selectMaxId Query', -1))
-					});
-				}
-				const maxId = results.length > 0 ?results[0].maxId:0;
-				const min = 1;
-				const max = 100;
-				const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
+				const query = 'SELECT MAX(id) AS maxId FROM user';
+				//For now, add random number to max id to create new id
+				db.query(query, (error, results) => {
+					if (error) {
+						return db.rollback(()=>{
+							return reject(new dbError('Error occurred while executing selectMaxId Query', -1))
+						});
+					}
+					const maxId = results.length > 0 ?results[0].maxId:0;
+					const min = 1;
+					const max = 100;
+					const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
 
-				const newId = maxId + randomInt
-				const insertQuery = 'INSERT INTO user (id, firstname, lastname, email, password,phone, pfp) VALUES (?, ?, ?, ?, ?, ?, ?)'
-				db.execute(insertQuery, [newId, firstname, lastname, email, password, number, pfp], (err) =>{
+					const newId = maxId + randomInt
+					const insertQuery = 'INSERT INTO user (id, firstname, lastname, email, password,phone, pfp) VALUES (?, ?, ?, ?, ?, ?, ?)'
+					db.execute(insertQuery, [newId, firstname, lastname, email, password, number, pfp], (err) =>{
 						if(err){
 							return db.rollback(()=>{
 								return reject(new dbError('Error occurred while executing insertQuery', -1))
@@ -115,7 +115,8 @@ const addUser = ({ firstname, lastname, email, number, password, pfp}) => {
 							resolve("Successfully added user");
 						});
 					});
-			});
+				});
+			})
 		});
 	})
 }
