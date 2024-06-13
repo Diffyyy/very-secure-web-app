@@ -30,15 +30,16 @@ const checkUser = ({email})=>{
 				return reject(new dbError('Error occurred while checkingEmail', -1))
 			}
 			if ( results.length > 0 ){
-				const user = results[0]
-				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
-				db.execute(checkAdmin, [user.id], (error, results) => {
-                    if (error) {
-                        return reject(new dbError('Error occurred while checking admin', -1));
-                    }
-                    user.isAdmin = results.length > 0;
-                    return resolve(user);
-                });
+				// const user = results[0]
+				// const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+				// db.execute(checkAdmin, [user.id], (error, results) => {
+                //     if (error) {
+                //         return reject(new dbError('Error occurred while checking admin', -1));
+                //     }
+                //     user.isAdmin = results.length > 0;
+                //     return resolve(user);
+
+				return resolve(results[0])
 			}else{
 				return resolve(false)
 			}
@@ -46,17 +47,25 @@ const checkUser = ({email})=>{
 	})
 }
 
-
 const getUserInfo = ({id}) =>{
 	return new Promise((resolve, reject)=>{
 		const query = 'SELECT firstname, lastname, email, phone, pfp FROM user WHERE id = ?' 
-		console.log(id)
 		db.execute(query, [id], (error, results)=>{
 			if(error){
 				return reject(new dbError('Error occurred while getting user', -1))
 			}
 			if(results.length > 0){
-				return resolve(results[0])
+				const user = results[0]
+				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+				db.execute(checkAdmin, [id], (error, results) => {
+					
+					if (error) {
+						return reject(new dbError('Error occurred while checking admin', -1));
+					}
+					user.isAdmin = results.length > 0;
+					
+					return resolve(user);
+				});
 			}else{
 				return resolve(false)
 			}

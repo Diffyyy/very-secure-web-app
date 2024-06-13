@@ -20,18 +20,18 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views')); // Set the views directory to the current directory
 //middleware function for debugging session
 function logBeforeSession(req, res, next){
-	console.log('-------------------------------------')
-	console.log('BEFORE SESSION MIDDLEWARE: ')
-	console.log(req.session)
-	console.log('-------------------------------------')
+	// console.log('-------------------------------------')
+	// console.log('BEFORE SESSION MIDDLEWARE: ')
+	// console.log(req.session)
+	// console.log('-------------------------------------')
 	next()
 }
 
 function logAfterSession(req, res, next){
-	console.log('-------------------------------------')
-	console.log('AFTER SESSION MIDDLEWARE: ')
-	console.log(req.session)
-	console.log('-------------------------------------')
+	// console.log('-------------------------------------')
+	// console.log('AFTER SESSION MIDDLEWARE: ')
+	// console.log(req.session)
+	// console.log('-------------------------------------')
 	next()
 }
 app.use(logBeforeSession)
@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
 			if(user===false){
 				return res.status(400).send('Invalid user')
 			}
-			if(req.session.user.isAdmin){
+			if(user.isAdmin){
 				res.render('admin', user); 
 			}
 			else{
@@ -147,20 +147,18 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 				}
 				if(result===true){
 					//correct password
-					console.log('correct password')
+					// console.log('correct password')
 					req.session.regenerate(function (err) {
 						if (err) next(err)
-						req.session.user = {id: user.id, isAdmin: user.isAdmin}
+						req.session.user = {id: user.id}
 						req.session.save(function (err) {
 							if (err) return next(err)
-							
-							
 							res.redirect('/')
 
 						})
 					})
 				}else{
-					console.log('wrong password')
+					// console.log('wrong password')
 					return res.status(400).send()
 				}
 			});
@@ -168,7 +166,6 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 			console.log(err)
 		})
 	
-
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
 	req.session.user = null
