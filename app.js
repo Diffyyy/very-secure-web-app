@@ -95,12 +95,6 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	if (!profilepic) {
 		return res.status(400).json({profilepic: 'Profile picture is required'});
 	}
-
-	//TODO: checkers for valid name, email and number
-	if (password !== confirmpassword) {
-		//TO PRINT ERROR PROPERLY, put id of invalid input element as the key of json object, and the error message as value
-		return res.status(400).json({confirmpassword: 'Passwords do not match'});
-	}
 	try{
 		const fileType = await import('file-type');
 		const fileBuffer = fs.readFileSync(profilepic.path);
@@ -154,12 +148,19 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 
 app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	const {email, password} = req.body
+	if (!/^[a-zA-Z\d]+([._-][a-zA-Z\d]+)*@[-a-zA-z\d]+(\.[-a-zA-Z\d]+)*\.[a-zA-z]{2,}$/.test(email)) {
+		return res.status(400).send()
+	}
+
+	if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password)) {
+		return res.status(400).send()
+	}
 	checkUser({email})
 		.then(user=>{
 			if(user===false){
 				//No email found
 				console.log('No email found')
-				return res.status(400).send('Invalid login credentials')
+				return res.status(400).send()
 			}
 			
 			bcrypt.compare(password, user.password, function(err, result) {
