@@ -62,7 +62,6 @@ app.get('/', (req, res) => {
 			if(user===false){
 				return res.status(400).send('Invalid user')
 			}
-			console.log(user)
 			if(req.session.user.isAdmin){
 				res.render('admin', user); 
 			}
@@ -117,7 +116,6 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 			//TODO: Change pfp_path here
 			addUser({firstname, lastname, email, number, password: hash, pfp:profilepic.path})
 				.then(result=>{
-					console.log(result)
 					res.redirect('/login')
 				}).catch(err=>{ //change pfp path here
 					if(err.code===0){
