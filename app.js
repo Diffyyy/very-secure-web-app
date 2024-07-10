@@ -2,7 +2,6 @@ require('dotenv').config()
 const express = require('express');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
-const Recaptcha = require('express-recaptcha').RecaptchaV2;
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
@@ -11,10 +10,6 @@ const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const {addUser, checkUser, getUserInfo} = require('./db');
-
-// reCAPTCHA
-const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
-
 // Serve static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -51,7 +46,7 @@ app.use(logAfterSession)
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,  
-  max: 3,	// Limits IP Address 3 Times
+  max: 3,
   message: 'Too many login attempts, please try again after 15 minutes',
 });
 
@@ -81,7 +76,6 @@ app.get('/', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-	// res.render('login.html', { recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY });
 	res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
@@ -152,7 +146,7 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	}
 });
 
-app.post('/login', loginLimiter, recaptcha.middleware.verify, upload.none(), async(req, res)=>{
+app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	const {email, password} = req.body
 	if (!/^[a-zA-Z\d]+([._-][a-zA-Z\d]+)*@[-a-zA-z\d]+(\.[-a-zA-Z\d]+)*\.[a-zA-z]{2,}$/.test(email)) {
 		return res.status(400).send()
@@ -161,8 +155,7 @@ app.post('/login', loginLimiter, recaptcha.middleware.verify, upload.none(), asy
 	if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password)) {
 		return res.status(400).send()
 	}
-	if (!req.recaptcha.error){
-		checkUser({email})
+	checkUser({email})
 		.then(user=>{
 			if(user===false){
 				//No email found
@@ -195,10 +188,7 @@ app.post('/login', loginLimiter, recaptcha.middleware.verify, upload.none(), asy
 		}).catch(err=>{
 			console.log(err)
 		})
-	}
-	else {
-		res.status(400).json({captcha: 'CAPTCHA validation failed, please try again.'})
-	}
+	
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
 	req.session.user = null
