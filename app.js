@@ -14,7 +14,7 @@ const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const {handleError} = require('./error-handler')
 // reCAPTCHA
-const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
+// const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
 // Serve static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
