@@ -35,6 +35,10 @@
                 <input type="tel" class="form-control" id="number" name="number" required>
                 <div class="invalid-feedback" id="numberError"></div>
             </div>
+			<div class="form-group">
+                <label for="number">Age</label>
+                <input type="number" class="form-control" id="age" name="age" required>
+                <div class="invalid-feedback" id="ageError"></div>
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" class="form-control" id="password" name="password" required>
@@ -49,6 +53,7 @@
         </form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+	<script src="./assets/js/profile-validation.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('signupForm').addEventListener('submit', async function(event) {
@@ -62,90 +67,19 @@
                 button.style.backgroundColor = '';
                 document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
                 document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
-
+				const validationResult = validateForm(formData, true)
                 // Client-side validation
-                let isValid = true;
-
-                // Profile Picture
-                const profilepic = formData.get('profilepic');
-                if (!profilepic) {
-                    isValid = false;
-                    document.getElementById('profilepicError').textContent = 'Profile picture is required.';
-                    document.getElementById('profilepic').classList.add('is-invalid');
-                }
-
-                // Last Name
-                const lastname = formData.get('lastname');
-                if (!/^[A-Za-z]{1,20}$/.test(lastname)) {
-                    isValid = false;
-                    document.getElementById('lastnameError').textContent = 'Last name must be up to 20 English letters.';
-                    document.getElementById('lastname').classList.add('is-invalid');
-                }
-
-                // First Name
-                const firstname = formData.get('firstname');
-                if (!/^[A-Za-z]{1,20}$/.test(firstname)) {
-                    isValid = false;
-                    document.getElementById('firstnameError').textContent = 'First name must be up to 20 English letters.';
-                    document.getElementById('firstname').classList.add('is-invalid');
-                }
-
-                // Email
-                const email = formData.get('email');
-                if (!/^[a-zA-Z\d]+([._-][a-zA-Z\d]+)*@[-a-zA-z\d]+(\.[-a-zA-Z\d]+)*\.[a-zA-z]{2,}$/.test(email)) {
-                    isValid = false;
-                    document.getElementById('emailError').textContent = 'Email format is invalid.';
-                    document.getElementById('email').classList.add('is-invalid');
-                }
-
-                // Mobile Number
-                const number = formData.get('number');
-                if (!/^(\+63|0)\d{10}$/.test(number)) {
-                    isValid = false;
-                    document.getElementById('numberError').textContent = 'Mobile number format is invalid.';
-                    document.getElementById('number').classList.add('is-invalid');
-                }
-
-                // Password
-                const password = formData.get('password');
-                if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password)) {
-                    isValid = false;
-                    document.getElementById('passwordError').textContent = 'Password must be 12-63 characters long and include at least one number, one uppercase letter, one lowercase letter, and one special character (@._-!?).';
-                    document.getElementById('password').classList.add('is-invalid');
-                }
-
-                // Confirm Password
-                const confirmpassword = formData.get('confirmpassword');
-                if (password !== confirmpassword) {
-                    isValid = false;
-                    document.getElementById('confirmpasswordError').textContent = 'Passwords do not match.';
-                    document.getElementById('confirmpassword').classList.add('is-invalid');
-                }
-
-                if (isValid) {
+                if (validationResult===true) {
                     try {
                         const response = await fetch('/signup', {
                             method: 'POST',
                             body: formData
                         });
-
-						console.log(response)
                         if (!response.ok) {
                             const errors = await response.json();
-							console.log(errors)
                             button.style.backgroundColor = 'red';
-
-                            for (const [key, value] of Object.entries(errors)) {
-                                const errorElement = document.getElementById(`${key}Error`);
-                                const inputElement = document.getElementById(key);
-                                if (errorElement) {
-                                    errorElement.textContent = value;
-                                }
-                                if (inputElement) {
-                                    inputElement.classList.add('is-invalid');
-                                }
-                            }
-                        } else {
+							displayFormErrors(document, errors)
+                       } else {
                             alert('Signup successful');
                             window.location.href = response.url ;
                         }
@@ -153,6 +87,7 @@
                         console.error('Error:', err);
                     }
                 } else {
+					displayFormErrors(document, validationResult)
                     button.style.backgroundColor = 'red';
                 }
             });

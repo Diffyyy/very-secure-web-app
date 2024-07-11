@@ -1,0 +1,30 @@
+CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8mb3 ;
+USE `mydb` ;
+
+-- -----------------------------------------------------
+-- Table `mydb`.`user`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`user` (
+  `id` INT NOT NULL,
+  `firstname` VARCHAR(32) NOT NULL,
+  `lastname` VARCHAR(32) NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `phone` VARCHAR(15) NOT NULL,
+  `pfp` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`admin`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mydb`.`admin` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `id`
+    FOREIGN KEY (`id`)
+    REFERENCES `mydb`.`user` (`id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
