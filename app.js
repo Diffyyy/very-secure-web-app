@@ -8,6 +8,8 @@ const port = 3000;
 const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const logger = require('./logger'); // import logger module
+
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
 const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture} = require('./db');
 const {deleteFile, validateImage} = require('./files')
