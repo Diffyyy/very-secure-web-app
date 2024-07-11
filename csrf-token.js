@@ -16,7 +16,7 @@ function generateCsrfToken(userId) {
 
 	// Combine token and signature
 	const tokenWithSignature = `${csrfToken}.${signature}`;
-	tokens.set(userId, {token: tokenWithSignature, expiry: new Date()})
+	tokens.set(userId, {token: tokenWithSignature})
 	return tokenWithSignature;
 }
 
@@ -46,7 +46,7 @@ function verifyCsrfToken(userId, tokenWithSignature){
 		console.log("user token and csrfToken mismatch")
 		return false;
 	}
-	tokens.set(userId, undefined)
+	tokens.delete(userId)
 	return true;
 }
 //only use this middleware after authenticateUser middleware
