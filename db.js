@@ -27,7 +27,7 @@ class dbError extends Error{
 // Get all posts from the db
 const getAllPosts = () => {
    return new Promise((resolve, reject)=>{
-		const displayPosts = 'SELECT p.id, p.title, p.content, p.date, u.firstname, u.lastname FROM post p JOIN user u ON p.user = u.id WHERE p.isVisible = true ORDER BY p.date DESC'
+		const displayPosts = 'SELECT p.id, p.title, p.content, p.date, p.user, u.firstname, u.lastname FROM post p JOIN user u ON p.user = u.id WHERE p.isVisible = true ORDER BY p.date DESC'
 		db.execute(displayPosts, (err, results)=>{
 			if(err){
 				return reject(err)
@@ -59,6 +59,7 @@ const checkUser = ({email})=>{
 		})
 	})
 }
+
 
 const getUserInfo = ({id}) =>{
 	return new Promise((resolve, reject)=>{
@@ -113,6 +114,7 @@ const updateUserPass = ({id, pass})=>{
 	})
 
 }
+
 const getUserProfilePicture = (id)=>{
 	return new Promise((resolve, reject)=>{
 		const query = 'SELECT pfp FROM user WHERE id = ?' 
@@ -140,6 +142,91 @@ const updateUserProfilePicture = ({id, path})=>{
 		})
 	})
 }
+
+
+// TODO: Update the title, content and date of post in the db post table. Before updating, make sure that the owner of the post is the user (user == id) or user is admin
+const updatePostInfo = ({ id, title, content, date }, user) => {
+    return new Promise((resolve, reject) => {
+        // Begin transaction
+        db.beginTransaction(err => {
+            if (err) {
+                return reject(err);
+            }
+			console.log(id)
+			console.log(title)
+			console.log(content)
+			console.log(date)
+			
+			// Check if the post exists and if the user has permission to edit it
+			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
+			db.execute(checkExistingQuery, [id], (err, results)=>{
+				if (err) {
+                    return db.rollback(() => reject(err));
+                }
+				if (results.length === 0) {
+                    return db.rollback(() => reject(new Error('Post not existing')));
+                }
+				const postOwnerId = results[0].user;
+				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+				
+				// If user owns the post
+				if(postOwnerId === user){
+					const updateQuery = 'UPDATE post SET title = ?, content = ?, date = ? WHERE id = ?'
+					db.execute(updateQuery, [title, content, date, id], (err) =>{
+						if (err) {
+							return db.rollback(() => reject(err));
+						}
+						// Commit transaction
+						db.commit(err => {
+							if (err) {
+								return db.rollback(() => reject(err));
+							}
+							resolve();
+						});
+						
+					})
+				}
+				// If not, check admin. If it is admin, update db
+				else{
+					db.execute(checkAdmin, [user], (err, results) => {
+						if (err) {
+							return reject(err);
+						}
+						if(results.length <= 0){
+							return db.rollback(() => reject(new Error('User not authorized')));
+						}
+						else{
+							const updateQuery = 'UPDATE post SET title = ?, content = ?, date = ? WHERE id = ?'
+							db.execute(updateQuery, [title, content, date, id], (err) =>{
+								if (err) {
+									return db.rollback(() => reject(err));
+								}
+								// Commit transaction
+								db.commit(err => {
+									if (err) {
+										return db.rollback(() => reject(err));
+									}
+									resolve();
+								});
+								
+							})
+						}
+					});
+				}
+
+				if (postOwnerId !== user) {
+					
+                    
+                }
+				
+
+			})
+            
+        });
+    });
+};
+
+
 const updateUser = ({id, firstname, lastname, number, age }) => {
     return new Promise((resolve, reject) => {
         // Begin transaction
@@ -240,4 +327,4 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts};
+module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo};

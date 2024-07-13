@@ -11,9 +11,10 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts} = require('./db');
+const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
+const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
 const {handleError} = require('./error-handler')
 // reCAPTCHA
 // const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
@@ -77,28 +78,29 @@ app.get('/index', (req, res) => {
 	// res.sendFile(path.join(__dirname, 'views', 'index.html'));
 	res.status(408).render('index')
 });
-// Routes
+
 app.get('/',authenticateUser, (req, res) => {
 	getUserInfo({id: req.session.user.id}).then(user =>{
 		if(user===false){
 			return res.status(400).send('Invalid user')
 		}
-
 		// Fetch posts
 		getAllPosts().then(posts=>{
-			user.posts = posts;
-			if(user.isAdmin){
-				res.render('admin', user)
-			}
-			else{
-				res.render('user', user)
-			}	
+			// Not sure if needed
+			// if(admin){
+			// 	res.render('admin', { ...user, posts, admin })
+			// }
+			// else{
+			// 	res.render('user', { ...user, posts, admin })
+			// }	
+			posts.forEach(post =>{
+				post.isOwner = (post.user == req.session.user.id)
+			})
+			res.render('user',  {...user, posts})
 		}).catch(err=>{
 			console.error(err);
 			res.status(500).send('Error in fetching posts')
 		})
-		
-
 	})
 });
 
@@ -217,6 +219,35 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 	})
 
 })
+
+app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) => {
+    const postData ={
+		id: req.body.postId,
+		title: req.body.title,
+		content: req.body.content,
+		date: req.body.date, // Or use req.body.date if you're passing it from the form
+	}
+	// TODO: validate all fields
+	// const validationErrors = validatePost(postData);
+	// if (validationErrors === true) {
+		
+	// }else{
+	// 	return res.status(400).json({ errors: validationErrors });
+	// }
+
+	const user = req.session.user
+	console.log(user)
+	updatePostInfo(postData, user.id).then(result=>{
+		res.status(200).send()
+	}).catch(err=>{ 
+		handleError(err)
+		if(err.code===0){
+			return res.status(400).json({number: err.message})
+		}
+		return res.status(520).json({number: 'Unknown error'})
+	});
+
+});
 
 app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req,res,next)=>{
 	const validationResult = validateForm(req.body)	

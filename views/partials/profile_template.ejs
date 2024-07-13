@@ -85,6 +85,21 @@
                     <div class="card-body">
                         <h5 class="card-title"><%= post.title %></h5>
                         <h6 class="card-subtitle mb-2 text-muted">By <%= post.firstname %> <%= post.lastname %> on <%= new Date(post.date).toLocaleDateString() %></h6>
+                        <% if (isAdmin || post.isOwner) { %>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-primary mt-3" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editPostModal"
+                                    data-post-id="<%= post.id %>"
+                                    data-post-user="<%= post.user %>"
+                                    data-post-date="<%= post.date %>"
+                                    data-post-title="<%= post.title %>"
+                                    data-post-content="<%= post.content %>">
+                                Edit Post
+                            </button>
+                                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#deletePostModal">Delete Post</button>
+                            </div>
+                        <% } %>
                         <p class="card-text"><%= post.content %></p>
                     </div>
                 </div>
@@ -166,6 +181,52 @@
 </div>
 <!--Create Post Modal-->
 
+<!-- Edit Post Modal -->
+<div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editPostModalLabel">Edit Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editPostForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" id="postId" name="postId">
+                    <div class="mb-3">
+                        <label for="postTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="postTitle" name="title">
+                    </div>
+                    <div class="mb-3">
+                        <label for="postContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="postContent" name="content" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--Delete Post Modal-->
+<div class="modal fade" id="deletePostModal" tabindex="-1" aria-labelledby="deletePostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePostModalLabel">Delete post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h5>Are you sure you want to delete the post?</h5>
+                <button type="submit" class="btn btn-danger">Delete</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Profile Picture Modal -->
 <div class="modal fade" id="editProfilePictureModal" tabindex="-1" aria-labelledby="editProfilePictureModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -200,6 +261,94 @@
         const editProfileForm = document.getElementById('editProfileForm');
         const editProfilePictureForm = document.getElementById('editProfilePictureForm');
         const changePasswordForm = document.getElementById('changePasswordForm');
+        const editPostModal = new bootstrap.Modal(document.getElementById('editPostModal'));
+        const editPostForm = document.getElementById('editPostForm');
+
+        // editPostModal.addEventListener('show.bs.modal', function (event) {
+        //     var button = event.relatedTarget; // Button that triggered the modal
+        //     var postId = button.getAttribute('data-post-id');
+        //     var postTitle = button.getAttribute('data-post-title');
+        //     var postContent = button.getAttribute('data-post-content');
+
+        //     var postIdValue = document.querySelector('#')
+        //     var postTitleValue
+        //     var postContentValue
+
+        //     // Get modal elements
+        //     var titleInput = editPostModal.querySelector('#postTitle');
+        //     var contentInput = editPostModal.querySelector('#postContent');
+        //     var postIdInput = editPostModal.querySelector('#postId');
+
+        //     // Set the values of the inputs
+        //     titleInput.value = postTitle;
+        //     contentInput.value = postContent;
+        //     postIdInput.value = postId;
+        // });
+
+        document.querySelectorAll('button[data-bs-target="#editPostModal"]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Extract data attributes
+                var postId = this.getAttribute('data-post-id');
+                var postTitle = this.getAttribute('data-post-title');
+                var postContent = this.getAttribute('data-post-content');
+                var postDate = this.getAttribute('data-post-date'); // Optional: if you need the date
+
+                document.querySelector('#editPostModal #postId').value = postId;
+                document.querySelector('#editPostModal #postTitle').value = postTitle;
+                document.querySelector('#editPostModal #postContent').value = postContent;
+                // document.querySelector('#editPostModal #postDate').value = postDate; // Optional
+            });
+        });
+
+        function formatToMySQLDate(date) {
+            const d = new Date(date);
+            return d.getFullYear() + '-' +
+                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+                ('0' + d.getDate()).slice(-2) + ' ' +
+                ('0' + d.getHours()).slice(-2) + ':' +
+                ('0' + d.getMinutes()).slice(-2) + ':' +
+                ('0' + d.getSeconds()).slice(-2);
+        }
+
+        editPostForm.addEventListener('submit', async function(event){
+            event.preventDefault();
+            const postDate = formatToMySQLDate(new Date());
+            const formData = new FormData();
+            // FIXME: have a checker if the values are valid
+            formData.append('postId', postId.value);
+            formData.append('title', postTitle.value);
+            formData.append('content', postContent.value);
+            formData.append('date', postDate)
+
+            // Log or use these values as needed
+            console.log('1Post ID:', postId.value);
+            console.log('2Post Title:', postTitle.value);
+            console.log('3Post Content:', postContent.value);
+
+
+            const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+            if(handleResponse(csrfResponse))return;
+            const csrfJson = await csrfResponse.json()
+            const response = await fetch('/updatePostInfo', {
+                method: 'POST',
+                body: formData,
+                headers:{"csrfToken":csrfJson.csrfToken}
+            });
+
+            if(handleResponse(response)) return;
+            if (!response.ok) {
+                const errors = await response.json();
+                displayFormErrors(document, errors);
+            } else {
+                // Close the modal
+                editPostModal.hide();
+                // FIXME: idk how to update values in the frontend so i just refresh
+                window.location.reload();
+                
+            }
+
+        })
+
 
         // Logout button click event handler
         logoutButton.addEventListener('click', function() {
@@ -211,7 +360,7 @@
                     console.error('Error logging out:', error);
                 });
         });
-
+       
         // Edit profile form submission handler
         editProfileForm.addEventListener('submit', async function(event) {
             event.preventDefault();
