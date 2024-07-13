@@ -97,7 +97,7 @@
                                     data-post-content="<%= post.content %>">
                                 Edit Post
                             </button>
-                                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#deletePostModal">Delete Post</button>
+                                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#deletePostModal" data-post-id="<%= post.id %>">Delete Post</button>
                             </div>
                         <% } %>
                         <p class="card-text"><%= post.content %></p>
@@ -218,11 +218,15 @@
                 <h5 class="modal-title" id="deletePostModalLabel">Delete post</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <h5>Are you sure you want to delete the post?</h5>
-                <button type="submit" class="btn btn-danger">Delete</button>
-
-            </div>
+            <form id="deletePostForm" method="POST">
+                <input type="hidden" name="postId">
+                <div class="modal-body">
+                    <h6>Are you sure you want to delete the post?</h6>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -263,6 +267,8 @@
         const changePasswordForm = document.getElementById('changePasswordForm');
         const editPostModal = new bootstrap.Modal(document.getElementById('editPostModal'));
         const editPostForm = document.getElementById('editPostForm');
+        const deletePostModal = new bootstrap.Modal(document.getElementById('deletePostModal'));
+        const deletePostForm = document.getElementById('deletePostForm')
 
         // editPostModal.addEventListener('show.bs.modal', function (event) {
         //     var button = event.relatedTarget; // Button that triggered the modal
@@ -300,6 +306,15 @@
             });
         });
 
+        document.querySelectorAll('button[data-bs-target="#deletePostModal"]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Extract data attributes
+                var postId = this.getAttribute('data-post-id');
+
+                document.querySelector('#editPostModal #postId').value = postId;
+            });
+        });
+
         function formatToMySQLDate(date) {
             const d = new Date(date);
             return d.getFullYear() + '-' +
@@ -309,6 +324,34 @@
                 ('0' + d.getMinutes()).slice(-2) + ':' +
                 ('0' + d.getSeconds()).slice(-2);
         }
+
+        deletePostForm.addEventListener('submit', async function(event){
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('postId', postId.value);
+            console.log("Event listener post id: ", postId.value)
+
+            const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+            if(handleResponse(csrfResponse))return;
+            const csrfJson = await csrfResponse.json()
+            const response = await fetch('/deletePost', {
+                method: 'POST',
+                body: formData,
+                headers:{"csrfToken":csrfJson.csrfToken}
+            });
+
+            if(handleResponse(response)) return;
+            if (!response.ok) {
+                const errors = await response.json();
+                displayFormErrors(document, errors);
+            } else {
+                // Close the modal
+                editPostModal.hide();
+                // FIXME: idk how to update values in the frontend so i just refresh
+                window.location.reload();
+                
+            }
+        })
 
         editPostForm.addEventListener('submit', async function(event){
             event.preventDefault();

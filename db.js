@@ -143,8 +143,79 @@ const updateUserProfilePicture = ({id, path})=>{
 	})
 }
 
+const deletePost = (id, user) =>{
+	return new Promise((resolve, reject)=>{
+		// Begin transaction
+		db.beginTransaction(err => {
+			if(err){
+				return reject(err);
+			}
+		})
+		console.log(id)
+		// Check if the post exists
+		const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
+		db.execute(checkExistingQuery, [id], (err, results)=>{
+			
+			if(err){
+				return db.rollback(() => reject(err));
+			}
+			if (results.length === 0) {
+				return db.rollback(() => reject(new Error('Post not existing')));
+			}
+			const postOwnerId = results[0].user;
+			const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
 
-// TODO: Update the title, content and date of post in the db post table. Before updating, make sure that the owner of the post is the user (user == id) or user is admin
+			// If user owns the post
+			if(postOwnerId === user){
+				const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
+				db.execute(updateQuery, [id], (err) =>{
+					if (err) {
+						return db.rollback(() => reject(err));
+					}
+					// Commit transaction
+					db.commit(err => {
+						if (err) {
+							return db.rollback(() => reject(err));
+						}
+						resolve();
+					});
+					
+				})
+			}
+			else{
+				db.execute(checkAdmin, [user], (err, results) => {
+					if (err) {
+						return reject(err);
+					}
+					if(results.length <= 0){
+						return db.rollback(() => reject(new Error('User not authorized')));
+					}
+					else{
+						const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
+						db.execute(updateQuery, [id], (err) =>{
+							if (err) {
+								return db.rollback(() => reject(err));
+							}
+							// Commit transaction
+							db.commit(err => {
+								if (err) {
+									return db.rollback(() => reject(err));
+								}
+								resolve();
+							});
+							
+						})
+					}
+				});
+			}
+		})
+
+		
+		
+	})
+}
+
+
 const updatePostInfo = ({ id, title, content, date }, user) => {
     return new Promise((resolve, reject) => {
         // Begin transaction
@@ -213,11 +284,6 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
 						}
 					});
 				}
-
-				if (postOwnerId !== user) {
-					
-                    
-                }
 				
 
 			})
@@ -327,4 +393,4 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo};
+module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost};
