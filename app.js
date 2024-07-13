@@ -11,7 +11,7 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture} = require('./db');
+const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const {handleError} = require('./error-handler')
@@ -83,12 +83,21 @@ app.get('/',authenticateUser, (req, res) => {
 		if(user===false){
 			return res.status(400).send('Invalid user')
 		}
-		if(user.isAdmin){
-			res.render('admin', user); 
-		}
-		else{
-			res.render('user', user)
-		}	
+
+		// Fetch posts
+		getAllPosts().then(posts=>{
+			user.posts = posts;
+			if(user.isAdmin){
+				res.render('admin', user)
+			}
+			else{
+				res.render('user', user)
+			}	
+		}).catch(err=>{
+			console.error(err);
+			res.status(500).send('Error in fetching posts')
+		})
+		
 
 	})
 });

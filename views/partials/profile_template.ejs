@@ -72,7 +72,26 @@
         </div>
         <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
         <button type="button" class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change Password</button>
+        <button type="button" class="btn mt-3" data-bs-toggle="modal" data-bs-target="#createPostModal">Create Post</button>
         <button type="button" class="btn btn-danger mt-3" id="btn-logout">Logout</button>
+    </div>
+
+    <!--Posts section-->
+    <div id="userPosts" class="mt-5">
+        <h2>All Posts</h2>
+        <% if (posts.length > 0) { %>
+            <% posts.forEach(function(post) { %>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= post.title %></h5>
+                        <h6 class="card-subtitle mb-2 text-muted">By <%= post.firstname %> <%= post.lastname %> on <%= new Date(post.date).toLocaleDateString() %></h6>
+                        <p class="card-text"><%= post.content %></p>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p>No posts available.</p>
+        <% } %>
     </div>
 
     <!-- Optional: Include Bootstrap JS and other dependencies if required -->
@@ -145,6 +164,7 @@
         </div>
     </div>
 </div>
+<!--Create Post Modal-->
 
 <!-- Edit Profile Picture Modal -->
 <div class="modal fade" id="editProfilePictureModal" tabindex="-1" aria-labelledby="editProfilePictureModalLabel" aria-hidden="true">

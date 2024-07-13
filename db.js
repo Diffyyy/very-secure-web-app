@@ -23,6 +23,25 @@ class dbError extends Error{
 		this.code = code
 	}
 }
+
+// Get all posts from the db
+const getAllPosts = () => {
+   return new Promise((resolve, reject)=>{
+		const displayPosts = 'SELECT p.id, p.title, p.content, p.date, u.firstname, u.lastname FROM post p JOIN user u ON p.user = u.id WHERE p.isVisible = true ORDER BY p.date DESC'
+		db.execute(displayPosts, (err, results)=>{
+			if(err){
+				return reject(err)
+			}
+			if(results.length > 0){
+				return resolve(results)
+			}else{
+				handleError(new dbError('No posts fetched'), -1)
+				return resolve(false)
+			}
+		})
+   })
+}
+
 const checkUser = ({email})=>{
 	return new Promise((resolve,reject)=>{
 		const checkEmail = 'SELECT id, password FROM user WHERE email = ?'
@@ -221,4 +240,4 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture};
+module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts};
