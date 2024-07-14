@@ -215,6 +215,94 @@ const deletePost = (id, user) =>{
 	})
 }
 
+// Returns the list of all the registered non admin users
+const getUserList = (user) =>{
+	return new Promise((resolve, reject) => {
+		// Begin transaction
+		db.beginTransaction(err => {
+			if(err){
+				return reject(err);
+			}
+		})
+
+		const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+		// Check first if user is admin
+		db.execute(checkAdmin, [user], (err, results) => {
+			if (err) {
+				return reject(err);
+			}
+			if(results.length <= 0){
+				return db.rollback(() => reject(new Error('User not authorized')));
+			}
+			else{
+				const getQuery = 'SELECT u.id, u.firstname, u.lastname, u.isBanned FROM user u LEFT JOIN admin a ON u.id = a.id WHERE a.id IS NULL;'
+				db.execute(getQuery, (err, result) =>{
+					if (err) {
+						return db.rollback(() => reject(err));
+					}
+					// Commit transaction
+					db.commit(err => {
+						if (err) {
+							return db.rollback(() => reject(err));
+						}
+						resolve(result)
+					});
+					
+				})
+			}
+		});
+		
+	})
+}
+
+
+// Ban hammer
+const banUser = (id, user) =>{
+	return new Promise((resolve, reject) => {
+		// Begin transaction
+		db.beginTransaction(err => {
+			if(err){
+				return reject(err);
+			}
+			// Check first id is in db 
+			const checkExistingQuery= 'SELECT * FROM user where id = ? '
+			db.execute(checkExistingQuery, [id], (err, results)=>{
+				if (err) {
+                    return db.rollback(() => reject(err));
+                }
+				if (results.length === 0) {
+                    return db.rollback(() => reject(new Error('User does not exist!')));
+                }
+				const checkAdmin = 'SELECT id FROM admin where id = ?'
+				db.execute(checkAdmin, [user], (err) => {
+					if(err){
+						return db.rollback(() => reject(err));
+					}
+					if(results.length <= 0){
+						return db.rollback(() => reject(new Error('User not authorized')));
+					}
+					// Change 1 to 0 or 0 to 1
+					else{
+						const updateUserQuery = 'UPDATE user SET isBanned = CASE WHEN isBanned = 0 THEN 1 WHEN isBanned = 1 THEN 0 END WHERE ID = ?'
+						db.execute(updateUserQuery, [id], (err) => {
+							if(err){
+								return db.rollback(() => reject(err));
+							}
+							// Commit transaction
+							db.commit(err => {
+								if (err) {
+									return db.rollback(() => reject(err));
+								}
+								resolve();
+							});
+						})
+					}
+				})
+			})
+		})
+	})
+}
+
 
 const updatePostInfo = ({ id, title, content, date }, user) => {
     return new Promise((resolve, reject) => {
@@ -223,10 +311,10 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
             if (err) {
                 return reject(err);
             }
-			console.log(id)
-			console.log(title)
-			console.log(content)
-			console.log(date)
+			// console.log(id)
+			// console.log(title)
+			// console.log(content)
+			// console.log(date)
 			
 			// Check if the post exists and if the user has permission to edit it
 			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
@@ -393,4 +481,4 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost};
+module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser};

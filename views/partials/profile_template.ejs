@@ -73,6 +73,9 @@
         <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
         <button type="button" class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change Password</button>
         <button type="button" class="btn mt-3" data-bs-toggle="modal" data-bs-target="#createPostModal">Create Post</button>
+        <% if (isAdmin) { %>
+            <button type="button" class="btn mt-3" data-bs-toggle="modal" data-bs-target="#banUserModal">Ban Users</button>
+        <% } %>
         <button type="button" class="btn btn-danger mt-3" id="btn-logout">Logout</button>
     </div>
 
@@ -253,6 +256,25 @@
     </div>
 </div>
 
+<!--Ban Users Modal-->
+<div class="modal fade" id="banUserModal" tabindex="-1" aria-labelledby="banUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="banUserModalLabel">User List</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="banUserForm" method="POST">
+                <div class="modal-body">
+                    <ul id="userList" class="list-group">
+                        <!-- User list will be populated here -->
+                    </ul>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="./assets/js/profile-validation.js"></script>
 <script src="./assets/js/response-handler.js"></script>
@@ -269,27 +291,8 @@
         const editPostForm = document.getElementById('editPostForm');
         const deletePostModal = new bootstrap.Modal(document.getElementById('deletePostModal'));
         const deletePostForm = document.getElementById('deletePostForm')
-
-        // editPostModal.addEventListener('show.bs.modal', function (event) {
-        //     var button = event.relatedTarget; // Button that triggered the modal
-        //     var postId = button.getAttribute('data-post-id');
-        //     var postTitle = button.getAttribute('data-post-title');
-        //     var postContent = button.getAttribute('data-post-content');
-
-        //     var postIdValue = document.querySelector('#')
-        //     var postTitleValue
-        //     var postContentValue
-
-        //     // Get modal elements
-        //     var titleInput = editPostModal.querySelector('#postTitle');
-        //     var contentInput = editPostModal.querySelector('#postContent');
-        //     var postIdInput = editPostModal.querySelector('#postId');
-
-        //     // Set the values of the inputs
-        //     titleInput.value = postTitle;
-        //     contentInput.value = postContent;
-        //     postIdInput.value = postId;
-        // });
+        const banUserModal = new bootstrap.Modal(document.getElementById('banUserModal'))
+        const banUserForm = document.getElementById('banUserForm');
 
         document.querySelectorAll('button[data-bs-target="#editPostModal"]').forEach(function(button) {
             button.addEventListener('click', function() {
@@ -315,6 +318,28 @@
             });
         });
 
+        // Gets the list of all active users
+        document.querySelectorAll('button[data-bs-target="#banUserModal"]').forEach(function(button){
+            button.addEventListener('click', async function(){
+                const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+                if(handleResponse(csrfResponse))return;
+                const csrfJson = await csrfResponse.json()
+                const response = await fetch('/getUserList', {
+                    method: 'POST',
+                    headers:{"csrfToken":csrfJson.csrfToken}
+                });
+                if(handleResponse(response)) return;
+                if (response.ok) {
+                    const userList = await response.json();
+                    populateUserModal(userList)
+                } else {
+                    const errors = await response.json();
+                    displayFormErrors(document, errors);
+                }
+            })  
+        })
+            
+
         function formatToMySQLDate(date) {
             const d = new Date(date);
             return d.getFullYear() + '-' +
@@ -325,11 +350,58 @@
                 ('0' + d.getSeconds()).slice(-2);
         }
 
+        function populateUserModal(userList) {
+            const modalBody = document.querySelector('#banUserModal .modal-body');
+            modalBody.innerHTML = ''; // Clear previous content
+
+            userList.forEach(user => {
+                const userElement = document.createElement('div');
+                userElement.className = 'user-item'; // Add a class for styling if needed
+                userElement.textContent = `${user.firstname} ${user.lastname} - `;
+
+                const statusText = document.createElement('span');
+                statusText.textContent = user.isBanned ? 'Banned' : 'Active';
+                userElement.appendChild(statusText);
+
+                const actionButton = document.createElement('button');
+                actionButton.textContent = user.isBanned ? 'Unban' : 'Ban';
+                actionButton.className = 'btn btn-primary ms-2'; 
+                actionButton.addEventListener('click', async function(event){
+                    event.preventDefault();
+                    const formData = new FormData();
+                    formData.append('userId', user.id);
+                    
+                    const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+                    if(handleResponse(csrfResponse))return;
+                    const csrfJson = await csrfResponse.json()
+                    const response = await fetch('/banUser', {
+                        method: 'POST',
+                        body: formData,
+                        headers:{"csrfToken":csrfJson.csrfToken}
+                    });
+                    if(handleResponse(response)) return;
+                    if (!response.ok) {
+                        const errors = await response.json();
+                        displayFormErrors(document, errors);
+                    } else {
+                        // Close the modal
+                        editPostModal.hide();
+                        // FIXME: idk how to update values in the frontend so i just refresh
+                        window.location.reload();
+                        
+                    }
+
+                });
+                userElement.appendChild(actionButton);
+
+                modalBody.appendChild(userElement);
+            });
+        }
+
         deletePostForm.addEventListener('submit', async function(event){
             event.preventDefault();
             const formData = new FormData();
             formData.append('postId', postId.value);
-            console.log("Event listener post id: ", postId.value)
 
             const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
             if(handleResponse(csrfResponse))return;

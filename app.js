@@ -11,7 +11,7 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost} = require('./db');
+const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
@@ -249,7 +249,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	// }
 
 	const user = req.session.user
-	console.log(user)
+	
 	updatePostInfo(postData, user.id).then(result=>{
 		res.status(200).send()
 	}).catch(err=>{ 
@@ -261,6 +261,36 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	});
 
 });
+
+// Ban goes bonk
+app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
+	const user = req.session.user
+	console.log(req.body.userId)
+	banUser(req.body.userId, user.id).then(result => {
+		res.status(200).json(result)
+	}).catch(err => {
+		handleError(err)
+		if(err.code === 0){
+			return res.status(400).json({number: err.message})
+		}
+		return res.status(520).json({number: 'Unknown error'})
+	})
+})
+
+// Get the list of all non admin users
+app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
+	const user = req.session.user
+	getUserList(user.id).then(result => {
+		res.status(200).json(result)
+	}).catch(err => {
+		handleError(err)
+		if(err.code === 0){
+			return res.status(400).json({number: err.message})
+		}
+		return res.status(520).json({number: 'Unknown error'})
+	})
+})
+
 
 app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req,res,next)=>{
 	const validationResult = validateForm(req.body)	
