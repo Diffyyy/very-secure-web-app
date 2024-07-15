@@ -13,6 +13,7 @@
     <!--Posts section-->
     <div id="userPosts" class="mt-5">
         <h2>All Posts</h2>
+        <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#createPostModal">Create Post</button>
         <% if (posts.length > 0) { %>
             <% posts.forEach(function(post) { %>
                 <div class="card mb-3">
