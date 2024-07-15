@@ -378,6 +378,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 					const pass = bcrypt.hashSync(newpassword,saltRounds)
 					updateUserPass({id, pass})	
 						.then(result=>{
+							logger.info(id + " changed password.")
 							return res.status(200).send()
 						}).catch(err=>{
 							handleError(err)
@@ -409,6 +410,7 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware, up
 				updateUserProfilePicture({id, path: profilepic.path})		
 					.then(result=>{
 						deleteFile(oldpfp)
+						logger.info(id + " update profile picture.")
 						return res.status(200).json({newprofilepic:profilepic.path})
 					}).catch(err=>{
 						handleError(err)
