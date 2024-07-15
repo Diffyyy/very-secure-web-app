@@ -154,6 +154,7 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 		//TODO: Change pfp_path here
 		addUser({firstname, lastname, email, number,age:parseInt(age,10), password: hash, pfp:profilepic.path})
 			.then(result=>{
+				logger.info(email + " signed up.")
 				res.redirect('/login')
 			}).catch(err=>{ //change pfp path here
 				handleError(err)
@@ -190,6 +191,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					if(result===true){
 						//correct password
 						// console.log('correct password')
+						logger.info(user.id + " logged in.")
 						req.session.regenerate(function (err) {
 							if (err) {
 								handleError(err)
@@ -221,6 +223,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
+	temp = req.session.user
 	req.session.user = null
 	req.session.save(function (err) {
 		if (err){
@@ -234,6 +237,8 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 				handleError(err)
 				res.status(520).send()
 			} 
+			logger.info(temp.id + " logged out")
+			temp = null
 			res.status(200).send()
 		})
 	})
@@ -247,6 +252,7 @@ app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	const user = req.session.user
 
 	deletePost(req.body.postId, user.id).then(result =>{
+		logger.info("Delete post " + req.body.postId + " by " + user.id)
 		res.status(200).send()
 	}).catch(err=>{
 		handleError(err)
@@ -275,6 +281,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const user = req.session.user
 	
 	updatePostInfo(postData, user.id).then(result=>{
+		logger.info("Update post " + req.body.postId + " by " + user.id)
 		res.status(200).send()
 	}).catch(err=>{ 
 		handleError(err)
@@ -292,6 +299,7 @@ app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(),
 	const user = req.session.user
 	console.log(req.body.userId)
 	banUser(req.body.userId, user.id).then(result => {
+		logger.info("Ban user " + req.body.userId + " by " + user.id)
 		res.status(200).json(result)
 	}).catch(err => {
 		handleError(err)
@@ -308,6 +316,7 @@ app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(),
 app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
 	const user = req.session.user
 	getUserList(user.id).then(result => {
+		logger.info("Get user list by " + user.id)
 		res.status(200).json(result)
 	}).catch(err => {
 		handleError(err)
@@ -328,6 +337,7 @@ app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.n
 		req.body.age = parseInt(req.body.age, 10)
 		updateUser(req.body)
 			.then(result=>{
+				logger.info("Update user info " + req.body.id)
 				res.status(200).send()
 			}).catch(err=>{ //change pfp path here
 				handleError(err)
