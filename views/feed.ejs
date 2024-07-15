@@ -43,6 +43,34 @@
         <% } %>
     </div>
 
+<!-- Create Post Modal -->
+<div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPostModalLabel">Create Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createPostForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newPostTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="newPostTitle" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPostContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="newPostContent" name="content" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Post Modal -->
 <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -140,6 +168,31 @@
                 ('0' + d.getSeconds()).slice(-2);
         }
 
+
+        createPostForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const postDate = formatToMySQLDate(new Date());
+                const formData = new FormData(createPostForm);
+                formData.append('date', postDate);
+
+                const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
+                if (handleResponse(csrfResponse)) return;
+                const csrfJson = await csrfResponse.json();
+
+                const response = await fetch('/createPost', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { "csrfToken": csrfJson.csrfToken }
+                });
+
+                if (handleResponse(response)) return;
+                if (!response.ok) {
+                    alert(await response.text());
+                } else {
+                    createPostModal.hide();
+                    window.location.reload();
+                }
+            });
 
         deletePostForm.addEventListener('submit', async function(event){
             event.preventDefault();
