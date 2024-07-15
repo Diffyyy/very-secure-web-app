@@ -32,16 +32,33 @@ const getAllPosts = () => {
 			if(err){
 				return reject(err)
 			}
-			if(results.length > 0){
-				return resolve(results)
-			}else{
-				handleError(new dbError('No posts fetched'), -1)
-				return resolve(false)
-			}
+			return resolve(results)
+			// if(results.length > 0){
+				
+			// }else{
+			// 	handleError(new dbError('No posts fetched'), -1)
+			// 	return resolve(false)
+			// }
 		})
    })
 }
-
+const checkIfBanned = (id) =>{
+	return new Promise((resolve, reject) => {
+		const checkIfBanned = 'SELECT id FROM user WHERE isBanned = false AND id = ?'
+		db.execute(checkIfBanned, [id], (err, results) => {
+			if(err){
+				return reject(err)
+			}
+			if ( results.length > 0 ){
+				return resolve(true)
+			}else{
+				//return false if user does not exist
+				handleError(new dbError('User is banned'), -1)
+				return resolve(false)
+			}
+		})
+	})
+}
 const checkUser = ({email})=>{
 	return new Promise((resolve,reject)=>{
 		const checkEmail = 'SELECT id, password FROM user WHERE email = ?'
@@ -481,4 +498,4 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser};
+module.exports = {addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned};

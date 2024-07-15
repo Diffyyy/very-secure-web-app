@@ -11,7 +11,7 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser} = require('./db');
+const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
@@ -45,7 +45,16 @@ function logAfterSession(req, res, next){
 }
 function authenticateUser(req,res,next){
 	if(req.session && req.session.user){
-		next()
+		checkIfBanned(req.session.user.id).then(isNotBanned =>{
+			if(isNotBanned){
+				next()
+			}else{
+				res.status(408).redirect('/index')
+			}
+		}).catch(err => {
+			console.error(err);
+			res.status(500).send('Internal Server Error');
+		})
 	}else{
 		//request timeout
 		res.status(408).redirect('/index')
