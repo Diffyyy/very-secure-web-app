@@ -79,42 +79,9 @@
         <button type="button" class="btn btn-danger mt-3" id="btn-logout">Logout</button>
     </div>
 
-    <!--Posts section-->
-    <div id="userPosts" class="mt-5">
-        <h2>All Posts</h2>
-        <% if (posts.length > 0) { %>
-            <% posts.forEach(function(post) { %>
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title"><%= post.title %></h5>
-                        <h6 class="card-subtitle mb-2 text-muted">By <%= post.firstname %> <%= post.lastname %> on <%= new Date(post.date).toLocaleDateString() %></h6>
-                        <% if (isAdmin || post.isOwner) { %>
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-primary mt-3" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#editPostModal"
-                                    data-post-id="<%= post.id %>"
-                                    data-post-user="<%= post.user %>"
-                                    data-post-date="<%= post.date %>"
-                                    data-post-title="<%= post.title %>"
-                                    data-post-content="<%= post.content %>">
-                                Edit Post
-                            </button>
-                                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#deletePostModal" data-post-id="<%= post.id %>">Delete Post</button>
-                            </div>
-                        <% } %>
-                        <p class="card-text"><%= post.content %></p>
-                    </div>
-                </div>
-            <% }) %>
-        <% } else { %>
-            <p>No posts available.</p>
-        <% } %>
-    </div>
 
     <!-- Optional: Include Bootstrap JS and other dependencies if required -->
 
-</body>
 <!-- Edit Profile Modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -184,55 +151,6 @@
 </div>
 <!--Create Post Modal-->
 
-<!-- Edit Post Modal -->
-<div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPostModalLabel">Edit Post</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="editPostForm" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" id="postId" name="postId">
-                    <div class="mb-3">
-                        <label for="postTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="postTitle" name="title">
-                    </div>
-                    <div class="mb-3">
-                        <label for="postContent" class="form-label">Content</label>
-                        <textarea class="form-control" id="postContent" name="content" rows="4"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!--Delete Post Modal-->
-<div class="modal fade" id="deletePostModal" tabindex="-1" aria-labelledby="deletePostModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deletePostModalLabel">Delete post</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="deletePostForm" method="POST">
-                <input type="hidden" name="postId">
-                <div class="modal-body">
-                    <h6>Are you sure you want to delete the post?</h6>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Edit Profile Picture Modal -->
 <div class="modal fade" id="editProfilePictureModal" tabindex="-1" aria-labelledby="editProfilePictureModalLabel" aria-hidden="true">
@@ -255,6 +173,7 @@
         </div>
     </div>
 </div>
+
 
 <!--Ban Users Modal-->
 <div class="modal fade" id="banUserModal" tabindex="-1" aria-labelledby="banUserModalLabel" aria-hidden="true">
@@ -287,192 +206,16 @@
         const editProfileForm = document.getElementById('editProfileForm');
         const editProfilePictureForm = document.getElementById('editProfilePictureForm');
         const changePasswordForm = document.getElementById('changePasswordForm');
-        const editPostModal = new bootstrap.Modal(document.getElementById('editPostModal'));
-        const editPostForm = document.getElementById('editPostForm');
-        const deletePostModal = new bootstrap.Modal(document.getElementById('deletePostModal'));
-        const deletePostForm = document.getElementById('deletePostForm')
         const banUserModal = new bootstrap.Modal(document.getElementById('banUserModal'))
         const banUserForm = document.getElementById('banUserForm');
-
-        document.querySelectorAll('button[data-bs-target="#editPostModal"]').forEach(function(button) {
-            button.addEventListener('click', function() {
-                // Extract data attributes
-                var postId = this.getAttribute('data-post-id');
-                var postTitle = this.getAttribute('data-post-title');
-                var postContent = this.getAttribute('data-post-content');
-                var postDate = this.getAttribute('data-post-date'); // Optional: if you need the date
-
-                document.querySelector('#editPostModal #postId').value = postId;
-                document.querySelector('#editPostModal #postTitle').value = postTitle;
-                document.querySelector('#editPostModal #postContent').value = postContent;
-                // document.querySelector('#editPostModal #postDate').value = postDate; // Optional
-            });
-        });
-
-        document.querySelectorAll('button[data-bs-target="#deletePostModal"]').forEach(function(button) {
-            button.addEventListener('click', function() {
-                // Extract data attributes
-                var postId = this.getAttribute('data-post-id');
-
-                document.querySelector('#editPostModal #postId').value = postId;
-            });
-        });
-
-        // Gets the list of all active users
-        document.querySelectorAll('button[data-bs-target="#banUserModal"]').forEach(function(button){
-            button.addEventListener('click', async function(){
-                const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-                if(handleResponse(csrfResponse))return;
-                const csrfJson = await csrfResponse.json()
-                const response = await fetch('/getUserList', {
-                    method: 'POST',
-                    headers:{"csrfToken":csrfJson.csrfToken}
-                });
-                if(handleResponse(response)) return;
-                if (response.ok) {
-                    const userList = await response.json();
-                    populateUserModal(userList)
-                } else {
-                    const errors = await response.json();
-                    displayFormErrors(document, errors);
-                }
-            })  
-        })
-            
-
-        function formatToMySQLDate(date) {
-            const d = new Date(date);
-            return d.getFullYear() + '-' +
-                ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
-                ('0' + d.getDate()).slice(-2) + ' ' +
-                ('0' + d.getHours()).slice(-2) + ':' +
-                ('0' + d.getMinutes()).slice(-2) + ':' +
-                ('0' + d.getSeconds()).slice(-2);
-        }
-
-        function populateUserModal(userList) {
-            const modalBody = document.querySelector('#banUserModal .modal-body');
-            modalBody.innerHTML = ''; // Clear previous content
-
-            userList.forEach(user => {
-                const userElement = document.createElement('div');
-                userElement.className = 'user-item'; // Add a class for styling if needed
-                userElement.textContent = `${user.firstname} ${user.lastname} - `;
-
-                const statusText = document.createElement('span');
-                statusText.textContent = user.isBanned ? 'Banned' : 'Active';
-                userElement.appendChild(statusText);
-
-                const actionButton = document.createElement('button');
-                actionButton.textContent = user.isBanned ? 'Unban' : 'Ban';
-                actionButton.className = 'btn btn-primary ms-2'; 
-                actionButton.addEventListener('click', async function(event){
-                    event.preventDefault();
-                    const formData = new FormData();
-                    formData.append('userId', user.id);
-                    
-                    const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-                    if(handleResponse(csrfResponse))return;
-                    const csrfJson = await csrfResponse.json()
-                    const response = await fetch('/banUser', {
-                        method: 'POST',
-                        body: formData,
-                        headers:{"csrfToken":csrfJson.csrfToken}
-                    });
-                    if(handleResponse(response)) return;
-                    if (!response.ok) {
-                        const errors = await response.json();
-                        displayFormErrors(document, errors);
-                    } else {
-                        // Close the modal
-                        editPostModal.hide();
-                        // FIXME: idk how to update values in the frontend so i just refresh
-                        window.location.reload();
-                        
-                    }
-
-                });
-                userElement.appendChild(actionButton);
-
-                modalBody.appendChild(userElement);
-            });
-        }
-
-        deletePostForm.addEventListener('submit', async function(event){
-            event.preventDefault();
-            const formData = new FormData();
-            formData.append('postId', postId.value);
-
-            const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-            if(handleResponse(csrfResponse))return;
-            const csrfJson = await csrfResponse.json()
-            const response = await fetch('/deletePost', {
-                method: 'POST',
-                body: formData,
-                headers:{"csrfToken":csrfJson.csrfToken}
-            });
-
-            if(handleResponse(response)) return;
-            if (!response.ok) {
-                const errors = await response.json();
-                displayFormErrors(document, errors);
-            } else {
-                // Close the modal
-                editPostModal.hide();
-                // FIXME: idk how to update values in the frontend so i just refresh
-                window.location.reload();
-                
-            }
-        })
-
-        editPostForm.addEventListener('submit', async function(event){
-            event.preventDefault();
-            const postDate = formatToMySQLDate(new Date());
-            const formData = new FormData();
-            // FIXME: have a checker if the values are valid
-            formData.append('postId', postId.value);
-            formData.append('title', postTitle.value);
-            formData.append('content', postContent.value);
-            formData.append('date', postDate)
-
-            // Log or use these values as needed
-            console.log('1Post ID:', postId.value);
-            console.log('2Post Title:', postTitle.value);
-            console.log('3Post Content:', postContent.value);
-
-
-            const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-            if(handleResponse(csrfResponse))return;
-            const csrfJson = await csrfResponse.json()
-            const response = await fetch('/updatePostInfo', {
-                method: 'POST',
-                body: formData,
-                headers:{"csrfToken":csrfJson.csrfToken}
-            });
-
-            if(handleResponse(response)) return;
-            if (!response.ok) {
-                const errors = await response.json();
-                displayFormErrors(document, errors);
-            } else {
-                // Close the modal
-                editPostModal.hide();
-                // FIXME: idk how to update values in the frontend so i just refresh
-                window.location.reload();
-                
-            }
-
-        })
-
-
         // Logout button click event handler
         logoutButton.addEventListener('click', function() {
             fetch('/logout', { method: 'POST' })
                 .then(response => {
-                    window.location.href = '/'
+					window.location.replace('/')
                 })
                 .catch(error => {
-                    console.error('Error logging out:', error);
+					alert('Unknown error')
                 });
         });
        
@@ -485,6 +228,7 @@
             const validationResult = validateForm(formData, false);
             if (validationResult === true) {
 				const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+				console.log(csrfResponse)
 				if(handleResponse(csrfResponse))return;
 				const csrfJson = await csrfResponse.json()
                 const response = await fetch('/updateProfile', {
@@ -584,6 +328,70 @@
             }
 			editProfilePictureForm.reset()
         });
+
+        // Gets the list of all active users
+        document.querySelectorAll('button[data-bs-target="#banUserModal"]').forEach(function(button){
+            button.addEventListener('click', async function(){
+                const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+                if(handleResponse(csrfResponse))return;
+                const csrfJson = await csrfResponse.json()
+                const response = await fetch('/getUserList', {
+                    method: 'POST',
+                    headers:{"csrfToken":csrfJson.csrfToken}
+                });
+                if(handleResponse(response)) return;
+                if (response.ok) {
+                    const userList = await response.json();
+                    populateUserModal(userList)
+                } else {
+					alert(await response.text())
+                }
+            })  
+        })
+
+        function populateUserModal(userList) {
+            const modalBody = document.querySelector('#banUserModal .modal-body');
+            modalBody.innerHTML = ''; // Clear previous content
+
+            userList.forEach(user => {
+                const userElement = document.createElement('div');
+                userElement.className = 'user-item'; // Add a class for styling if needed
+                userElement.textContent = `${user.email} - `;
+
+                const statusText = document.createElement('span');
+                statusText.textContent = user.isBanned ? 'Banned' : 'Active';
+                userElement.appendChild(statusText);
+
+                const actionButton = document.createElement('button');
+                actionButton.textContent = user.isBanned ? 'Unban' : 'Ban';
+                actionButton.className = 'btn btn-primary ms-2'; 
+                actionButton.addEventListener('click', async function(event){
+                    event.preventDefault();
+                    const formData = new FormData();
+                    formData.append('userId', user.id);
+                    
+                    const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+                    if(handleResponse(csrfResponse))return;
+                    const csrfJson = await csrfResponse.json()
+                    const response = await fetch('/banUser', {
+                        method: 'POST',
+                        body: formData,
+                        headers:{"csrfToken":csrfJson.csrfToken}
+                    });
+                    if(handleResponse(response)) return;
+                    if (!response.ok) {
+						alert(await response.text())
+                    } else {
+                        // Close the modal
+                        // FIXME: idk how to update values in the frontend so i just refresh
+                        window.location.reload();
+                        
+                    }
+                });
+                userElement.appendChild(actionButton);
+                modalBody.appendChild(userElement);
+            });
+        }
     });
 </script>
 </body>

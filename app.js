@@ -49,16 +49,16 @@ function authenticateUser(req,res,next){
 			if(isNotBanned){
 				next()
 			}else{
-				res.status(408).redirect('/index')
+				//User is banned
+				res.status(403).render('index')
 			}
 		}).catch(err => {
-			console.error(err);
+			handleError(err)
 			res.status(500).send('Internal Server Error');
 		})
 	}else{
 		//request timeout
-		res.status(408).redirect('/index')
-		// res.status(408).sendFile(path.join(__dirname, 'views', 'index.html'));
+		res.status(408).render('index')
 	}
 }
 app.use(logBeforeSession)
@@ -81,12 +81,17 @@ const upload = multer({
 	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
 });
 
-// Routes
-app.get('/index', (req, res) => {
-	// res.sendFile(path.join(__dirname, 'views', 'index.html'));
-	res.status(408).render('index')
-});
-
+app.get('/profile', authenticateUser, (req,res)=>{
+	getUserInfo({id: req.session.user.id}).then(user =>{
+		if(user===false){
+			return res.status(400).send('Invalid user')
+		}
+		res.render('user', {...user})
+	}).catch(err=>{
+		handleError(err)
+		res.status(520).send('Error in fetching user')
+	})
+})
 app.get('/',authenticateUser, (req, res) => {
 	getUserInfo({id: req.session.user.id}).then(user =>{
 		if(user===false){
@@ -104,11 +109,14 @@ app.get('/',authenticateUser, (req, res) => {
 			posts.forEach(post =>{
 				post.isOwner = (post.user == req.session.user.id)
 			})
-			res.render('user',  {...user, posts})
+			res.render('feed',  {...user,posts})
 		}).catch(err=>{
-			console.error(err);
-			res.status(500).send('Error in fetching posts')
+			handleError(err)
+			res.status(520).send('Error in fetching posts')
 		})
+	}).catch(err=>{
+		handleError(err)
+		res.status(520).send('Error in fetching user')
 	})
 });
 
@@ -170,6 +178,9 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 				if(user===false){
 					return res.status(400).send()
 				}
+				if(user.isBanned===1){
+					return res.status(403).send()
+				}
 				bcrypt.compare(password, user.password, function(err, result) {
 					if(err){
 						handleError(err)
@@ -183,7 +194,6 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 								handleError(err)
 						 		return res.status(520).send()
 							}
-
 							req.session.user = {id: user.id}
 							req.session.save(function (err) {
 								if (err){
@@ -201,6 +211,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 				});
 			}).catch(err=>{
 				handleError(err)
+				return res.status(520).send()
 			})
 	}
 	else {
@@ -237,9 +248,10 @@ app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	}).catch(err=>{
 		handleError(err)
 		if(err.code===0){
-			return res.status(400).json({number: err.message})
+			return res.status(400).send(err.message)
+			// return res.status(400).json({number: err.message})
 		}
-		return res.status(520).json({number: 'Unknown error'})
+		return res.status(520).send('Unknown error')
 	})
 })
 app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) => {
@@ -264,9 +276,10 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	}).catch(err=>{ 
 		handleError(err)
 		if(err.code===0){
-			return res.status(400).json({number: err.message})
+			return res.status(400).send(err.message)
+			// return res.status(400).json({number: err.message})
 		}
-		return res.status(520).json({number: 'Unknown error'})
+		return res.status(520).send('Unknown error')
 	});
 
 });
@@ -280,9 +293,11 @@ app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(),
 	}).catch(err => {
 		handleError(err)
 		if(err.code === 0){
-			return res.status(400).json({number: err.message})
+			return res.status(400).send(err.message)
+			// return res.status(400).json({number: err.message})
 		}
-		return res.status(520).json({number: 'Unknown error'})
+		return res.status(520).send('Unknown error')
+		// return res.status(520).json({number: 'Unknown error'})
 	})
 })
 
@@ -294,9 +309,11 @@ app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.non
 	}).catch(err => {
 		handleError(err)
 		if(err.code === 0){
-			return res.status(400).json({number: err.message})
+			return res.status(400).send(err.message)
+			// return res.status(400).json({number: err.message})
 		}
-		return res.status(520).json({number: 'Unknown error'})
+		return res.status(520).send('Unknown error')
+		// return res.status(520).json({number: 'Unknown error'})
 	})
 })
 

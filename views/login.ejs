@@ -31,6 +31,7 @@
         <!-- <button type="submit" class="btn btn-secondary mt-3" id='btn-home'>Home</a> -->
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+	<script src="./assets/js/profile-validation.js"></script>
 	<script>
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('loginForm').addEventListener('submit', async function(event) {
@@ -42,6 +43,14 @@
 				document.getElementById('invalid-login').textContent =''
 				document.getElementById('email').classList.remove('is-invalid')
 				document.getElementById('password').classList.remove('is-invalid')
+				const errorElement = document.getElementById('invalid-login')
+				if (!validateEmail(formData.get('email')) || !validatePassword(formData.get('password'))){
+					errorElement.textContent = 'Invalid Login Credentials'
+					document.getElementById('email').classList.add('is-invalid')
+					document.getElementById('password').classList.add('is-invalid');
+					return;
+				}
+
 				try {
 					const response = await fetch('/login', {
 						method: 'POST',
@@ -51,7 +60,6 @@
 					console.log(response)
 					if (!response.ok) {
 
-						const errorElement = document.getElementById('invalid-login')
 						//const inputElement = document.getElementById();
 						if (errorElement) {
 									//console.log(errorElement)
@@ -59,10 +67,11 @@
 								errorElement.textContent = 'Invalid Login Credentials';
 							}else if(response.status===429){
 								errorElement.textContent = 'Too many requests'
+							}else if(response.status===403){
+								errorElement.textContent = 'User is banned'
 							}else{
 								errorElement.textContent = 'Unknown error'
 							}
-							
 							document.getElementById('email').classList.add('is-invalid')
 							document.getElementById('password').classList.add('is-invalid');
 						}

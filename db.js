@@ -47,6 +47,7 @@ const checkIfBanned = (id) =>{
 		const checkIfBanned = 'SELECT id FROM user WHERE isBanned = false AND id = ?'
 		db.execute(checkIfBanned, [id], (err, results) => {
 			if(err){
+				handleError(err)
 				return reject(err)
 			}
 			if ( results.length > 0 ){
@@ -61,7 +62,7 @@ const checkIfBanned = (id) =>{
 }
 const checkUser = ({email})=>{
 	return new Promise((resolve,reject)=>{
-		const checkEmail = 'SELECT id, password FROM user WHERE email = ?'
+		const checkEmail = 'SELECT id, password,isBanned FROM user WHERE email = ?'
 		db.execute(checkEmail, [email], (err, results)=>{
 			if(err){
 				return reject(err)
@@ -167,68 +168,64 @@ const deletePost = (id, user) =>{
 			if(err){
 				return reject(err);
 			}
-		})
-		console.log(id)
-		// Check if the post exists
-		const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
-		db.execute(checkExistingQuery, [id], (err, results)=>{
-			
-			if(err){
-				return db.rollback(() => reject(err));
-			}
-			if (results.length === 0) {
-				return db.rollback(() => reject(new Error('Post not existing')));
-			}
-			const postOwnerId = results[0].user;
-			const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+			// Check if the post exists
+			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
+			db.execute(checkExistingQuery, [id], (err, results)=>{
 
-			// If user owns the post
-			if(postOwnerId === user){
-				const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
-				db.execute(updateQuery, [id], (err) =>{
-					if (err) {
-						return db.rollback(() => reject(err));
-					}
-					// Commit transaction
-					db.commit(err => {
+				if(err){
+					return db.rollback(() => reject(err));
+				}
+				if (results.length === 0) {
+					return db.rollback(() => reject(new Error('Post not existing')));
+				}
+				const postOwnerId = results[0].user;
+				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+
+				// If user owns the post
+				if(postOwnerId === user){
+					const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
+					db.execute(updateQuery, [id], (err) =>{
 						if (err) {
 							return db.rollback(() => reject(err));
 						}
-						resolve();
-					});
-					
-				})
-			}
-			else{
-				db.execute(checkAdmin, [user], (err, results) => {
-					if (err) {
-						return reject(err);
-					}
-					if(results.length <= 0){
-						return db.rollback(() => reject(new Error('User not authorized')));
-					}
-					else{
-						const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
-						db.execute(updateQuery, [id], (err) =>{
+						// Commit transaction
+						db.commit(err => {
 							if (err) {
 								return db.rollback(() => reject(err));
 							}
-							// Commit transaction
-							db.commit(err => {
+							resolve();
+						});
+
+					})
+				}
+				else{
+					db.execute(checkAdmin, [user], (err, results) => {
+						if (err) {
+							return reject(err);
+						}
+						if(results.length <= 0){
+							return db.rollback(() => reject(new Error('User not authorized')));
+						}
+						else{
+							const updateQuery = 'UPDATE post SET isVisible = 0 WHERE id = ?'
+							db.execute(updateQuery, [id], (err) =>{
 								if (err) {
 									return db.rollback(() => reject(err));
 								}
-								resolve();
-							});
-							
-						})
-					}
-				});
-			}
-		})
+								// Commit transaction
+								db.commit(err => {
+									if (err) {
+										return db.rollback(() => reject(err));
+									}
+									resolve();
+								});
 
-		
-		
+							})
+						}
+					});
+				}
+			})
+		})
 	})
 }
 
@@ -240,35 +237,34 @@ const getUserList = (user) =>{
 			if(err){
 				return reject(err);
 			}
-		})
-
-		const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
-		// Check first if user is admin
-		db.execute(checkAdmin, [user], (err, results) => {
-			if (err) {
-				return reject(err);
-			}
-			if(results.length <= 0){
-				return db.rollback(() => reject(new Error('User not authorized')));
-			}
-			else{
-				const getQuery = 'SELECT u.id, u.firstname, u.lastname, u.isBanned FROM user u LEFT JOIN admin a ON u.id = a.id WHERE a.id IS NULL;'
-				db.execute(getQuery, (err, result) =>{
-					if (err) {
-						return db.rollback(() => reject(err));
-					}
-					// Commit transaction
-					db.commit(err => {
+			const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
+			// Check first if user is admin
+			db.execute(checkAdmin, [user], (err, results) => {
+				if (err) {
+					return reject(err);
+				}
+				if(results.length <= 0){
+					return db.rollback(() => reject(new Error('User not authorized')));
+				}
+				else{
+					const getQuery = 'SELECT u.id, u.email, u.isBanned FROM user u LEFT JOIN admin a ON u.id = a.id WHERE a.id IS NULL;'
+					db.execute(getQuery, (err, result) =>{
 						if (err) {
 							return db.rollback(() => reject(err));
 						}
-						resolve(result)
-					});
-					
-				})
-			}
-		});
-		
+						// Commit transaction
+						db.commit(err => {
+							if (err) {
+								return db.rollback(() => reject(err));
+							}
+							resolve(result)
+						});
+
+					})
+				}
+			});
+
+		})
 	})
 }
 
