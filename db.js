@@ -42,6 +42,8 @@ const getAllPosts = () => {
 		})
    })
 }
+
+// Checks the user if currently banned
 const checkIfBanned = (id) =>{
 	return new Promise((resolve, reject) => {
 		const checkIfBanned = 'SELECT id FROM user WHERE isBanned = false AND id = ?'
@@ -161,6 +163,7 @@ const updateUserProfilePicture = ({id, path})=>{
 	})
 }
 
+// Sets the visibility of post to false
 const deletePost = (id, user) =>{
 	return new Promise((resolve, reject)=>{
 		// Begin transaction
@@ -168,7 +171,7 @@ const deletePost = (id, user) =>{
 			if(err){
 				return reject(err);
 			}
-			// Check if the post exists
+			// Check first if the post exists
 			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
 			db.execute(checkExistingQuery, [id], (err, results)=>{
 
@@ -198,6 +201,7 @@ const deletePost = (id, user) =>{
 
 					})
 				}
+				// Check if user is an admin
 				else{
 					db.execute(checkAdmin, [user], (err, results) => {
 						if (err) {
@@ -277,7 +281,7 @@ const banUser = (id, user) =>{
 			if(err){
 				return reject(err);
 			}
-			// Check first id is in db 
+			// Check first id is in db - user exists in the database
 			const checkExistingQuery= 'SELECT * FROM user where id = ? '
 			db.execute(checkExistingQuery, [id], (err, results)=>{
 				if (err) {
@@ -286,6 +290,7 @@ const banUser = (id, user) =>{
 				if (results.length === 0) {
                     return db.rollback(() => reject(new Error('User does not exist!')));
                 }
+				// Check if current user is an admin
 				const checkAdmin = 'SELECT id FROM admin where id = ?'
 				db.execute(checkAdmin, [user], (err) => {
 					if(err){
@@ -294,29 +299,37 @@ const banUser = (id, user) =>{
 					if(results.length <= 0){
 						return db.rollback(() => reject(new Error('User not authorized')));
 					}
-					// Change 1 to 0 or 0 to 1
-					else{
-						const updateUserQuery = 'UPDATE user SET isBanned = CASE WHEN isBanned = 0 THEN 1 WHEN isBanned = 1 THEN 0 END WHERE ID = ?'
-						db.execute(updateUserQuery, [id], (err) => {
-							if(err){
-								return db.rollback(() => reject(err));
-							}
-							// Commit transaction
-							db.commit(err => {
-								if (err) {
-									return db.rollback(() => reject(err));
-								}
-								resolve();
-							});
-						})
-					}
+					// Check if the user to be banned is not an admin
+					const checkBannedUserAdmin = 'SELECT id FROM admin WHERE id = ?'
+					db.execute(checkBannedUserAdmin, [id], (err, bannedUserAdminResults) => {
+                        if (err) {
+                            return db.rollback(() => reject(err));
+                        }
+                        if (bannedUserAdminResults.length > 0) {
+                            return db.rollback(() => reject(new Error('Cannot ban an admin user')));
+                        }
+                        // Change ban to unban or unban to ban
+                        const updateUserQuery = 'UPDATE user SET isBanned = CASE WHEN isBanned = 0 THEN 1 WHEN isBanned = 1 THEN 0 END WHERE id = ?';
+                        db.execute(updateUserQuery, [id], (err) => {
+                            if (err) {
+                                return db.rollback(() => reject(err));
+                            }
+                            // Commit transaction
+                            db.commit(err => {
+                                if (err) {
+                                    return db.rollback(() => reject(err));
+                                }
+                                resolve();
+                            });
+                        });
+                    });
 				})
 			})
 		})
 	})
 }
 
-
+// For editing posts- updates post
 const updatePostInfo = ({ id, title, content, date }, user) => {
     return new Promise((resolve, reject) => {
         // Begin transaction
@@ -324,10 +337,6 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
             if (err) {
                 return reject(err);
             }
-			// console.log(id)
-			// console.log(title)
-			// console.log(content)
-			// console.log(date)
 			
 			// Check if the post exists and if the user has permission to edit it
 			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
@@ -341,7 +350,7 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
 				const postOwnerId = results[0].user;
 				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
 				
-				// If user owns the post
+				// Check iff user owns the post
 				if(postOwnerId === user){
 					const updateQuery = 'UPDATE post SET title = ?, content = ?, date = ? WHERE id = ?'
 					db.execute(updateQuery, [title, content, date, id], (err) =>{

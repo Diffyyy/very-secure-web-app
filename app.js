@@ -106,6 +106,7 @@ app.get('/',authenticateUser, (req, res) => {
 			// else{
 			// 	res.render('user', { ...user, posts, admin })
 			// }	
+			// Retrieves the post
 			posts.forEach(post =>{
 				post.isOwner = (post.user == req.session.user.id)
 			})
@@ -238,6 +239,8 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 	})
 
 })
+
+
 app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) =>{
 
 	// TODO: Validate fields
