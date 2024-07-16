@@ -240,26 +240,15 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
-	// temp = req.session.user
-	// req.session.destroy(function(err){
-	// 	if (err){
-	// 		handleError(err)
-	// 		res.status(520).send()
-	// 	} 
-	// 	logger.info(temp.id + " logged out")
-	// 	temp = null
-	// 	res.status(200).send()
-	// })
-	req.session.user = null
-	req.session.save(function (err) {
-		if (err) next(err)
-
-		// regenerate the session, which is good practice to help
-		// guard against forms of session fixation
-		req.session.regenerate(function (err) {
-			if (err) next(err)
-			res.redirect('/')
-		})
+	temp = req.session.user
+	req.session.destroy(function(err){
+		if (err){
+			handleError(err)
+			res.status(520).send()
+		} 
+		logger.info(temp.id + " logged out")
+		temp = null
+		res.status(200).send()
 	})
 })
 
