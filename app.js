@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session)
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const multer = require('multer');
@@ -11,11 +12,22 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
+const {db, addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
 const {handleError} = require('./error-handler')
+
+//max age of a session in milliseconds
+const maxAge= parseInt(process.env.SESSION_COOKIE_MAX_AGE, 10)
+
+//Initialize mysql database for storing sessions
+const sessionStore = new MySQLStore({
+	checkExpirationInterval:60000,
+	expiration:maxAge,
+	disableTouch:true
+}, db)
+
 // reCAPTCHA
 // const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
 // Serve static files (CSS, JS, images)
@@ -64,9 +76,12 @@ function authenticateUser(req,res,next){
 app.use(logBeforeSession)
 app.use(session({
 	secret: process.env.SESSION_SECRET,
-	resave: process.env.SESSION_RESAVE,
-	saveUninitialized: process.env.SESSION_SAVE_UNINITIALIZED,
-	cookie: {maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE)}
+	resave: false,
+	saveUninitialized: false,
+	cookie: {maxAge: maxAge, sameSite:'strict' }, //use strict sameSite to prevent CSRF
+	store: sessionStore,
+
+	name:'very-secure-web-app.id'
 }))
 app.use(logAfterSession)
 
@@ -197,6 +212,8 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 								handleError(err)
 						 		return res.status(520).send()
 							}
+
+							// console.log(req.session.id)
 							req.session.user = {id: user.id}
 							req.session.save(function (err) {
 								if (err){
@@ -223,26 +240,27 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
-	temp = req.session.user
+	// temp = req.session.user
+	// req.session.destroy(function(err){
+	// 	if (err){
+	// 		handleError(err)
+	// 		res.status(520).send()
+	// 	} 
+	// 	logger.info(temp.id + " logged out")
+	// 	temp = null
+	// 	res.status(200).send()
+	// })
 	req.session.user = null
 	req.session.save(function (err) {
-		if (err){
-			handleError(err)
-			res.status(520).send()
-		} 
+		if (err) next(err)
+
 		// regenerate the session, which is good practice to help
 		// guard against forms of session fixation
 		req.session.regenerate(function (err) {
-			if (err){
-				handleError(err)
-				res.status(520).send()
-			} 
-			logger.info(temp.id + " logged out")
-			temp = null
-			res.status(200).send()
+			if (err) next(err)
+			res.redirect('/')
 		})
 	})
-
 })
 
 
@@ -297,7 +315,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 // Ban goes bonk
 app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
 	const user = req.session.user
-	console.log(req.body.userId)
+	// console.log(req.body.userId)
 	banUser(req.body.userId, user.id).then(result => {
 		logger.info("Ban user " + req.body.userId + " by " + user.id)
 		res.status(200).json(result)
