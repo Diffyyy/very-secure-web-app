@@ -503,4 +503,31 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 		});
 	})
 }
-module.exports = {db, addUser, checkUser,getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned};
+
+const addPost = ({user, title, content}) => {
+	return new Promise((resolve, reject) => {
+		return db.beginTransaction(err => {
+
+			if (err) {return reject(err);}
+
+			const query = 'INSERT INTO post (user, title, content) VALUES (?, ?, ?)'
+			db.execute(query, [user, title, content], (err) =>{
+				if(err){
+					return db.rollback(()=>{
+						return reject(err)
+					})
+				}
+				return db.commit((err)=>{
+					if(err){
+						return db.rollback(()=>{
+							reject(err)
+						})
+					}
+					resolve("Successfully added post");
+				});
+			});
+		});
+	})
+}
+
+module.exports = {db, addUser, addPost, checkUser, getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned};
