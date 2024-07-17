@@ -23,14 +23,12 @@ const maxAge= parseInt(process.env.SESSION_COOKIE_MAX_AGE, 10)
 
 //Initialize mysql database for storing sessions
 const sessionStore = new MySQLStore({
+	//remove expired sessions from database every 60000 milliseconds
 	checkExpirationInterval:60000,
 	expiration:maxAge,
-	disableTouch:true
+	disableTouch:true //disables session expiry from being reset on every user request
 }, db)
 
-// reCAPTCHA
-// const recaptcha = new Recaptcha(process.env.RECAPTCHA_SITE_KEY, process.env.RECAPTCHA_SECRET_KEY);
-// Serve static files (CSS, JS, images)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/assets', express.static('assets'));
@@ -55,13 +53,16 @@ function logAfterSession(req, res, next){
 	// console.log('-------------------------------------')
 	next()
 }
+//middleware for authenticating user, if user is not authenticated, direct user to index page
 function authenticateUser(req,res,next){
+	//check first if user has session token, and if session token corresponds to a logged in user
 	if(req.session && req.session.user){
+		//then check if user is banned
 		checkIfBanned(req.session.user.id).then(isNotBanned =>{
 			if(isNotBanned){
 				next()
 			}else{
-				//User is banned
+				//User is banned, send error code 403 forbidden
 				res.status(403).render('index')
 			}
 		}).catch(err => {
@@ -69,19 +70,21 @@ function authenticateUser(req,res,next){
 			res.status(500).send('Internal Server Error');
 		})
 	}else{
-		//request timeout
+		//user has no session token, or session has already expired
 		res.status(408).render('index')
 	}
 }
 app.use(logBeforeSession)
+
+//session middleware is used for all routes
 app.use(session({
 	secret: process.env.SESSION_SECRET,
-	resave: false,
-	saveUninitialized: false,
+	resave: false, //don't resave cookie to database on every request
+	saveUninitialized: false, //don't save session with no user
 	cookie: {maxAge: maxAge, sameSite:'strict' }, //use strict sameSite to prevent CSRF
 	store: sessionStore,
 
-	name:'very-secure-web-app.id'
+	name:'very-secure-web-app.id'//name of cookie for session token
 }))
 app.use(logAfterSession)
 
@@ -96,9 +99,11 @@ const upload = multer({
 	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
 });
 
+//view profile page
 app.get('/profile', authenticateUser, (req,res)=>{
 	getUserInfo({id: req.session.user.id}).then(user =>{
 		if(user===false){
+			//user does not exist in database
 			return res.status(400).send('Invalid user')
 		}
 		res.render('user', {...user})
@@ -107,9 +112,12 @@ app.get('/profile', authenticateUser, (req,res)=>{
 		res.status(520).send('Error in fetching user')
 	})
 })
+
+// page for showing all posts
 app.get('/',authenticateUser, (req, res) => {
 	getUserInfo({id: req.session.user.id}).then(user =>{
 		if(user===false){
+			//user does not exist in database
 			return res.status(400).send('Invalid user')
 		}
 		// Fetch posts
@@ -144,15 +152,16 @@ app.get('/signup', (req, res) => {
 	res.sendFile(path.join(__dirname, 'views', 'signup.html'));
 });
 
-app.get('/admin', (req, res) => {
-	res.sendFile(path.join(__dirname, 'views', 'admin.html'));
-});
+// app.get('/admin', (req, res) => {
+// 	res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+// });
 
 app.post('/signup', upload.single('profilepic'), async (req, res) => {
 	const { lastname, firstname, email, number,age, password, confirmpassword } = req.body;
 	const profilepic = req.file;
-
+	
 	if (!profilepic) {
+		//if no input profile picture
 		return res.status(400).json({profilepic: 'Profile picture is required'});
 	}
 	const validImage = await validateImage(profilepic.path)
@@ -160,13 +169,15 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 		return res.status(400).json({profilepic: 'Invalid image file'})
 	}
 	else{ //Signup success
-		req.body.profilepic = profilepic
+		req.body.profilepic = profilepic //only so req.body.profilepic is not undefined in validateForm
 		const validationResult = validateForm(req.body, true);
+
+		//if there are errors in form, send back to client
 		if (validationResult!==true){
 			return res.status(400).json(validationResult)
 		}
 		const hash = bcrypt.hashSync(password,saltRounds)
-		//TODO: Change pfp_path here
+		
 		addUser({firstname, lastname, email, number,age:parseInt(age,10), password: hash, pfp:profilepic.path})
 			.then(result=>{
 				logger.info(email + " signed up.")
@@ -178,7 +189,6 @@ app.post('/signup', upload.single('profilepic'), async (req, res) => {
 				}
 			});
 	}
-	// res.status(500).send('Server error');
 });
 
 app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
@@ -189,15 +199,19 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	if (!validatePassword(password)) {
 		return res.status(400).send()
 	}
-	if (true){
+
+	if (true){ //used to be where captcha is checked
 		checkUser({email})
 			.then(user=>{
 				if(user===false){
+					//no user with input email
 					return res.status(400).send()
 				}
 				if(user.isBanned===1){
+					//user is banned, send error code 403 forbidden
 					return res.status(403).send()
 				}
+
 				bcrypt.compare(password, user.password, function(err, result) {
 					if(err){
 						handleError(err)
@@ -205,23 +219,24 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					}
 					if(result===true){
 						//correct password
-						// console.log('correct password')
 						logger.info(user.id + " logged in.")
+
+
+						//generate new session token for user
 						req.session.regenerate(function (err) {
 							if (err) {
 								handleError(err)
 						 		return res.status(520).send()
 							}
 
-							// console.log(req.session.id)
 							req.session.user = {id: user.id}
+							//correlate generated session token with id of user, and save in database
 							req.session.save(function (err) {
 								if (err){
 									handleError(err)
 									return res.status(520).send()
 								} 
 								res.redirect('/')
-
 							})
 						})
 					}else{
@@ -235,12 +250,15 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 			})
 	}
 	else {
-		res.status(400).json({captcha: 'CAPTCHA validation failed, please try again.'})
+		//captcha is not implemented anymore
+		// res.status(400).json({captcha: 'CAPTCHA validation failed, please try again.'})
 	}
 
 })
 app.post('/logout', upload.none(), async(req, res, next)=>{
 	temp = req.session.user
+	
+	//destroy session of user and delete from  database
 	req.session.destroy(function(err){
 		if (err){
 			handleError(err)
@@ -322,6 +340,7 @@ app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(),
 // Get the list of all non admin users
 app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
 	const user = req.session.user
+	//checks if user is an admin, then returns all non-admin users if true
 	getUserList(user.id).then(result => {
 		logger.info("Get user list by " + user.id)
 		res.status(200).json(result)
@@ -338,6 +357,7 @@ app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.non
 
 
 app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req,res,next)=>{
+	//validate updateProfile inputs
 	const validationResult = validateForm(req.body)	
 	req.body.id = req.session.user.id
 	if (validationResult===true){
@@ -346,9 +366,10 @@ app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.n
 			.then(result=>{
 				logger.info("Update user info " + req.body.id)
 				res.status(200).send()
-			}).catch(err=>{ //change pfp path here
+			}).catch(err=>{ 
 				handleError(err)
 				if(err.code===0){
+					//input number already belongs to another user
 					return res.status(400).json({number: err.message})
 				}
 				return res.status(520).json({number: 'Unknown error'})
@@ -374,14 +395,17 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 		return res.status(400).json(errors)
 	}
 	const id = req.session.user.id
+	
 	getUserPass(id)
 		.then(result=>{
+			//check if currentPassword is correct
 			bcrypt.compare(currentpassword, result, function(err, result) {
 				if(err){
 					handleError(err)
 					return res.status(520).json({currentpassword: 'Unknown error'})
 				}
 				if(result===true){
+					//if currentPassword is correct, update password of user
 					const pass = bcrypt.hashSync(newpassword,saltRounds)
 					updateUserPass({id, pass})	
 						.then(result=>{
@@ -405,6 +429,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware, upload.single('newprofilepic'), async(req,res,next)=>{
 	const id = req.session.user.id
 	const profilepic = req.file;
+	//if no input profile picture
 	if (!profilepic) {
 		return res.status(400).json({newprofilepic: 'Profile picture is required'});
 	}
@@ -412,10 +437,12 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware, up
 	if(!validImage)	{
 		return res.status(400).json({newprofilepic: 'Invalid image file'})
 	}else{
+		//first get old pfp of user
 		getUserProfilePicture(id)	
 			.then(oldpfp=>{
 				updateUserProfilePicture({id, path: profilepic.path})		
 					.then(result=>{
+						//if pfp was successfully updated, delete old pfp
 						deleteFile(oldpfp)
 						logger.info(id + " update profile picture.")
 						return res.status(200).json({newprofilepic:profilepic.path})
@@ -430,6 +457,7 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware, up
 	}
 })
 app.get('/csrfToken', authenticateUser, async(req,res)=>{
+	//responds with single-use token for action, prevents CSRF 
 	const id = req.session.user.id
 	const token = generateCsrfToken(id)
 	return res.status(200).json({csrfToken:token})

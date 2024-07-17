@@ -227,14 +227,14 @@
             document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
             const validationResult = validateForm(formData, false);
             if (validationResult === true) {
+				//get csrfToken from server
 				const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-				console.log(csrfResponse)
 				if(handleResponse(csrfResponse))return;
 				const csrfJson = await csrfResponse.json()
                 const response = await fetch('/updateProfile', {
                     method: 'POST',
                     body: formData,
-					headers:{"csrfToken":csrfJson.csrfToken}
+					headers:{"csrfToken":csrfJson.csrfToken} //send csrfToken in headers
                 });
 				if(handleResponse(response)) return;
                 if (!response.ok) {
@@ -275,13 +275,14 @@
 				errors.confirmpassword = 'Passwords do not match'
 			}
             if (Object.keys(errors).length===0) {
+				//get csrfToken from server
 				const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
 				if(handleResponse(csrfResponse))return;
 				const csrfJson = await csrfResponse.json()
                 const response = await fetch('/changePassword', {
                     method: 'POST',
                     body: formData,
-					headers:{"csrfToken":csrfJson.csrfToken}
+					headers:{"csrfToken":csrfJson.csrfToken} //send csrfToken in headers
                 });
 				if(handleResponse(response))return;
                 if (!response.ok) {
@@ -307,17 +308,17 @@
 			if(!formData.get("newprofilepic")){
                 displayFormErrors(document, {newprofilepic:'Profile picture is required'});
 			}
+			//get csrfToken from server
 			const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
 			if(handleResponse(csrfResponse))return;
 			const csrfJson = await csrfResponse.json()
             const response = await fetch('/updateProfilePicture', {
                 method: 'POST',
                 body: formData,
-				headers:{"csrfToken":csrfJson.csrfToken}
+				headers:{"csrfToken":csrfJson.csrfToken} //send csrfToken in headers
             });
 
 			if(handleResponse(response))return;
-			/* console.log("DID I MAKE IT HERE?") */
             if (!response.ok) {
 				const errors= await response.json()
 				displayFormErrors(document, errors)

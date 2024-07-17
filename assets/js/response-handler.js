@@ -1,5 +1,6 @@
 
 //400 - Invalid Input
+//403 - User is banned
 //408 - Session timeout
 //419 - Invalid CSRF token
 function handleResponse(response){

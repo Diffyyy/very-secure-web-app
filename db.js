@@ -62,6 +62,7 @@ const checkIfBanned = (id) =>{
 		})
 	})
 }
+//check if user with given email exists
 const checkUser = ({email})=>{
 	return new Promise((resolve,reject)=>{
 		const checkEmail = 'SELECT id, password,isBanned FROM user WHERE email = ?'
@@ -89,6 +90,7 @@ const getUserInfo = ({id}) =>{
 				return reject(err)
 			}
 			if(results.length > 0){
+				//if user exists, check if user is an admin
 				const user = results[0]
 				const checkAdmin = 'SELECT id FROM admin WHERE id = ?';
 				db.execute(checkAdmin, [id], (err, results) => {
@@ -455,7 +457,7 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 				
 				return reject(err);
 			}
-
+			//check first if email or phone is already existing
 			const checkExisting = 'SELECT id FROM user WHERE email = ? OR phone = ?'
 			db.execute(checkExisting, [email, number], (err, results)=>{
 				if(err){
@@ -468,7 +470,7 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 				}
 				
 				const query = 'SELECT MAX(id) AS maxId FROM user';
-				//For now, add random number to max id to create new id
+				//add random number to max user id, as id of new user
 				db.query(query, (err, results) => {
 					if (err) {
 						return db.rollback(()=>{

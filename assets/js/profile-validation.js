@@ -22,7 +22,7 @@ function validatePassword(password) {
     return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password);
 }
 
-function validateForm(formData, isSignup, returnOnFirstError = false) {
+function validateForm(formData, isSignup=false, returnOnFirstError = false) {
     const errors = {};
 
     // Profile Picture (optional for update)
