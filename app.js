@@ -96,7 +96,8 @@ const loginLimiter = rateLimit({
 
 const upload = multer({
 	dest: 'uploads/',
-	limits: { fileSize: 2 * 1024 * 1024 }  // Limit file size to 2MB
+	limits: { fileSize: 2 * 1024 * 1024 },
+	// Limit file size to 2MB
 });
 
 //view profile page
@@ -156,39 +157,48 @@ app.get('/signup', (req, res) => {
 // 	res.sendFile(path.join(__dirname, 'views', 'admin.html'));
 // });
 
-app.post('/signup', upload.single('profilepic'), async (req, res) => {
-	const { lastname, firstname, email, number,age, password, confirmpassword } = req.body;
-	const profilepic = req.file;
-	
-	if (!profilepic) {
-		//if no input profile picture
-		return res.status(400).json({profilepic: 'Profile picture is required'});
-	}
-	const validImage = await validateImage(profilepic.path)
-	if(!validImage)	{
-		return res.status(400).json({profilepic: 'Invalid image file'})
-	}
-	else{ //Signup success
-		req.body.profilepic = profilepic //only so req.body.profilepic is not undefined in validateForm
-		const validationResult = validateForm(req.body, true);
-
-		//if there are errors in form, send back to client
-		if (validationResult!==true){
-			return res.status(400).json(validationResult)
+app.post('/signup', async (req, res) => {
+	//check first if there are errors with upload such as file is too large
+	upload.single('profilepic')(req,res, async function(err){
+		if(err instanceof multer.MulterError){
+			return res.status(400).json({profilepic: err.message});
+		}else if(err){
+			handleError(err)
+			return res.status(400).json({profilepic: 'Unknown error'});
 		}
-		const hash = bcrypt.hashSync(password,saltRounds)
-		
-		addUser({firstname, lastname, email, number,age:parseInt(age,10), password: hash, pfp:profilepic.path})
-			.then(result=>{
-				logger.info(email + " signed up.")
-				res.redirect('/login')
-			}).catch(err=>{ //change pfp path here
-				handleError(err)
-				if(err.code===0){
-					return res.status(400).json({email: 'Email or number already existing', number: 'Email or number already existing'})
-				}
-			});
-	}
+		const { lastname, firstname, email, number,age, password, confirmpassword } = req.body;
+		const profilepic = req.file;
+		if (!profilepic) {
+			//if no input profile picture
+			return res.status(400).json({profilepic: 'Profile picture is required'});
+		}
+		const validImage = await validateImage(profilepic.path)
+		if(!validImage)	{
+			return res.status(400).json({profilepic: 'Invalid image file'})
+		}
+		else{ //Signup success
+			req.body.profilepic = profilepic //only so req.body.profilepic is not undefined in validateForm
+			const validationResult = validateForm(req.body, true);
+
+			//if there are errors in form, send back to client
+			if (validationResult!==true){
+				return res.status(400).json(validationResult)
+			}
+			const hash = bcrypt.hashSync(password,saltRounds)
+
+			addUser({firstname, lastname, email, number,age:parseInt(age,10), password: hash, pfp:profilepic.path})
+				.then(result=>{
+					logger.info(email + " signed up.")
+					res.redirect('/login')
+				}).catch(err=>{ //change pfp path here
+					handleError(err)
+					if(err.code===0){
+						return res.status(400).json({email: 'Email or number already existing', number: 'Email or number already existing'})
+					}
+				});
+		}
+
+	})
 });
 
 app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
@@ -226,7 +236,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 						req.session.regenerate(function (err) {
 							if (err) {
 								handleError(err)
-						 		return res.status(520).send()
+								return res.status(520).send()
 							}
 
 							req.session.user = {id: user.id}
@@ -426,35 +436,44 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 		})
 })
 
-app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware, upload.single('newprofilepic'), async(req,res,next)=>{
-	const id = req.session.user.id
-	const profilepic = req.file;
-	//if no input profile picture
-	if (!profilepic) {
-		return res.status(400).json({newprofilepic: 'Profile picture is required'});
-	}
-	const validImage = await validateImage(profilepic.path)
-	if(!validImage)	{
-		return res.status(400).json({newprofilepic: 'Invalid image file'})
-	}else{
-		//first get old pfp of user
-		getUserProfilePicture(id)	
-			.then(oldpfp=>{
-				updateUserProfilePicture({id, path: profilepic.path})		
-					.then(result=>{
-						//if pfp was successfully updated, delete old pfp
-						deleteFile(oldpfp)
-						logger.info(id + " update profile picture.")
-						return res.status(200).json({newprofilepic:profilepic.path})
-					}).catch(err=>{
-						handleError(err)
-						return res.status(520).json({newprofilepic:'Unknown error'})
-					})
-			}).catch(err=>{
-				handleError(err)
-				return res.status(520).json({newprofilepic:'Unknown error'})
-			})
-	}
+app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  async(req,res,next)=>{
+	//check first if there is error in uploading pfp
+	upload.single('newprofilepic')(req,res, async function(err){
+		if(err instanceof multer.MulterError){
+			return res.status(400).json({newprofilepic: err.message});
+		}else if(err){
+			handleError(err)
+			return res.status(400).json({newprofilepic: 'Unknown error'});
+		}
+		const id = req.session.user.id
+		const profilepic = req.file;
+		//if no input profile picture
+		if (!profilepic) {
+			return res.status(400).json({newprofilepic: 'Profile picture is required'});
+		}
+		const validImage = await validateImage(profilepic.path)
+		if(!validImage)	{
+			return res.status(400).json({newprofilepic: 'Invalid image file'})
+		}else{
+			//first get old pfp of user
+			getUserProfilePicture(id)	
+				.then(oldpfp=>{
+					updateUserProfilePicture({id, path: profilepic.path})		
+						.then(result=>{
+							//if pfp was successfully updated, delete old pfp
+							deleteFile(oldpfp)
+							logger.info(id + " update profile picture.")
+							return res.status(200).json({newprofilepic:profilepic.path})
+						}).catch(err=>{
+							handleError(err)
+							return res.status(520).json({newprofilepic:'Unknown error'})
+						})
+				}).catch(err=>{
+					handleError(err)
+					return res.status(520).json({newprofilepic:'Unknown error'})
+				})
+		}
+	})
 })
 app.get('/csrfToken', authenticateUser, async(req,res)=>{
 	//responds with single-use token for action, prevents CSRF 

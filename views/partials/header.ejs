@@ -1,4 +1,14 @@
 <!-- Header Bar -->
+
+    <style>
+        #headerPfp {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: center;
+        }
+	</style>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
         <a class="navbar-brand"  id="home">Home</a>
@@ -9,7 +19,7 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<%= pfp %>" alt="Profile Picture" class="rounded-circle me-2" width="32" height="32">
+                        <img src="<%= pfp %>" alt="Profile Picture" class="rounded-circle me-2" id="headerPfp">
                         <span><%= firstname %> <%= lastname %></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">

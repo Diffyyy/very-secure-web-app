@@ -9,7 +9,7 @@ const tokens = new Map()
 
 // Function to generate a CSRF token with HMAC signature
 function generateCsrfToken(userId) {
-	// Create a random token, 32 bytes long, twice the minimum of 16 bytes
+	// Create a random token, 32 bytes long, twice the reccommended minimum of 16 bytes
 	const csrfToken = crypto.randomBytes(32).toString('hex');
 	// Create HMAC signature
 	const hmac = crypto.createHmac('sha256', secretKey);
