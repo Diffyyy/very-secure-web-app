@@ -19,8 +19,7 @@ const{validateTitle, validateContent, validatePost} = require('./assets/js/post-
 const {handleError} = require('./error-handler')
 
 //max age of a session in milliseconds
-const maxAge= parseInt(process.env.SESSION_COOKIE_MAX_AGE, 10)
-
+const maxAge= 6000000
 //Initialize mysql database for storing sessions
 const sessionStore = new MySQLStore({
 	//remove expired sessions from database every 60000 milliseconds
