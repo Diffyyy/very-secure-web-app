@@ -12,7 +12,7 @@ const saltRounds = 10;
 const logger = require('./logger'); // import logger module
 
 const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
-const {db, addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
+const {db, addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, createPost, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
@@ -278,6 +278,34 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 		res.status(200).send()
 	})
 })
+
+app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res) => {
+    const { title, content } = req.body;
+	// const postData = {
+    //     id, 
+	// 	title,
+	// 	content,
+	// 	date, 
+    // };
+
+    // Validating the post data
+    const validationErrors = validatePost({ title, content });
+    if (validationErrors !== true) {
+		return res.status(400).json({ errors: validationErrors });
+    }
+
+	const user = req.session.user;
+	
+    try {
+        const postId = await createPost({ title, content, userId: req.session.user.id });
+        logger.info(`Post ${postId} created by user ${req.session.user.id}`);
+        res.status(201).send('Post created successfully');
+    } catch (err) {
+        handleError(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 
 app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) =>{
