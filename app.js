@@ -280,30 +280,25 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 })
 
 app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res) => {
-    const { title, content } = req.body;
-	// const postData = {
-    //     id, 
-	// 	title,
-	// 	content,
-	// 	date, 
-    // };
-
-    // Validating the post data
-    const validationErrors = validatePost({ title, content });
-    if (validationErrors !== true) {
-		return res.status(400).json({ errors: validationErrors });
+	const user = req.session.user
+	const postData = {
+		user: user.id,
+		date: req.body.date,
+		title: req.body.title,
+		content: req.body.content,
     }
 
-	const user = req.session.user;
 	
-    try {
-        const postId = await createPost({ title, content, userId: req.session.user.id });
-        logger.info(`Post ${postId} created by user ${req.session.user.id}`);
-        res.status(201).send('Post created successfully');
-    } catch (err) {
-        handleError(err);
-        res.status(500).send('Internal Server Error');
-    }
+	createPost(postData).then(result => {
+		logger.info("Created post by " + user.id)
+		res.status(200).send()
+	}).catch(err=>{
+		handleError(err)
+		if(err.code===0){
+			return res.status(400).send(err.message)
+		}
+		return res.status(520).send('Unknown error')
+	})
 });
 
 

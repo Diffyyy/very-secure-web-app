@@ -131,7 +131,9 @@
         const editPostModal = new bootstrap.Modal(document.getElementById('editPostModal'));
         const editPostForm = document.getElementById('editPostForm');
         const deletePostModal = new bootstrap.Modal(document.getElementById('deletePostModal'));
-        const deletePostForm = document.getElementById('deletePostForm')
+        const deletePostForm = document.getElementById('deletePostForm');
+        const createPostModal = new bootstrap.Modal(document.getElementById('createPostModal'));
+
 
         document.querySelectorAll('button[data-bs-target="#editPostModal"]').forEach(function(button) {
             button.addEventListener('click', function() {
@@ -193,7 +195,7 @@
                     createPostModal.hide();
                     window.location.reload();
                 }
-            });
+        });
 
         deletePostForm.addEventListener('submit', async function(event){
             event.preventDefault();

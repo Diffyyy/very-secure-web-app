@@ -506,14 +506,14 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 	})
 }
 
-const addPost = ({user, title, content}) => {
+const createPost = ({user, date, title, content}) => {
 	return new Promise((resolve, reject) => {
 		return db.beginTransaction(err => {
 
 			if (err) {return reject(err);}
 
-			const query = 'INSERT INTO post (user, title, content) VALUES (?, ?, ?)'
-			db.execute(query, [user, title, content], (err) =>{
+			const query = 'INSERT INTO post (user, date, title, content, isVisible) VALUES (?, ?, ?, ?, true)'
+			db.execute(query, [user, date, title, content], (err) =>{
 				if(err){
 					return db.rollback(()=>{
 						return reject(err)
@@ -532,4 +532,4 @@ const addPost = ({user, title, content}) => {
 	})
 }
 
-module.exports = {db, addUser, addPost, checkUser, getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned};
+module.exports = {db, addUser, createPost, checkUser, getUserPass, updateUser, getUserInfo, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, deletePost, getUserList, banUser, checkIfBanned};
