@@ -178,23 +178,26 @@
                 const formData = new FormData(createPostForm);
                 formData.append('date', postDate);
 
-                const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
-                if (handleResponse(csrfResponse)) return;
-                const csrfJson = await csrfResponse.json();
+                try{
+                    const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
+                    if (handleResponse(csrfResponse)) return;
+                    const csrfJson = await csrfResponse.json();
 
-                const response = await fetch('/createPost', {
-                    method: 'POST',
-                    body: formData,
-                    headers: { "csrfToken": csrfJson.csrfToken }
-                });
+                    const response = await fetch('/createPost', {
+                        method: 'POST',
+                        body: formData,
+                        headers:{"csrfToken":csrfJson.csrfToken}
+                    });
 
-                if (handleResponse(response)) return;
-                if (!response.ok) {
-                    alert(await response.text());
-                } else {
-                    createPostModal.hide();
-                    window.location.reload();
+                    if (handleResponse(response)) return;
+                    if (!response.ok) {
+                        alert(await response.text());
+                    } else {
+                        createPostModal.hide();
+                        window.location.reload();
+                    }
                 }
+                catch (error){console.log(error)}
         });
 
         deletePostForm.addEventListener('submit', async function(event){
