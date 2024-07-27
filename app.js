@@ -280,6 +280,13 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 })
 
 app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res) => {
+	
+	const { title, content } = req.body;
+	const validationErrors = validatePost({title, content})
+	if(validationErrors !== true){
+		return res.status(400).json({ errors: validationErrors });
+	}
+
 	const user = req.session.user
 	const postData = {
 		user: user.id,
@@ -288,7 +295,6 @@ app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 		content: req.body.content,
     }
 
-	
 	createPost(postData).then(result => {
 		logger.info("Created post by " + user.id)
 		res.status(200).send()
@@ -321,7 +327,13 @@ app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	})
 })
 app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) => {
-    const postData ={
+    const { title, content } = req.body;
+	const validationErrors = validatePost({title, content})
+	if(validationErrors !== true){
+		return res.status(400).json({ errors: validationErrors });
+	}
+	
+	const postData ={
 		id: req.body.postId,
 		title: req.body.title,
 		content: req.body.content,

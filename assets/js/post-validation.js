@@ -25,26 +25,11 @@ function validateIsVisible(isVisible) {
 }
 
 function validatePost(postData, returnOnFirstError = false) {
-    const errors = {};
-
-    // User ID
-    const userId = postData.userId;
-    if (!validateUserId(userId)) {
-        errors.userId = 'User ID must be a positive integer.';
-        if (returnOnFirstError) return errors;
-    }
-
-    // Post ID
-    const postId = postData.postId;
-    if (!validatePostId(postId)) {
-        errors.postId = 'Post ID must be a positive integer.';
-        if (returnOnFirstError) return errors;
-    }
-
+    const errors = {}
     // Title
     const title = postData.title;
     if (!validateTitle(title)) {
-        errors.title = 'Title must be a non-empty string up to 100 characters.';
+        errors.title = 'Title must be a non-empty string.';
         if (returnOnFirstError) return errors;
     }
 
@@ -52,20 +37,6 @@ function validatePost(postData, returnOnFirstError = false) {
     const content = postData.content;
     if (!validateContent(content)) {
         errors.content = 'Content must be a non-empty string.';
-        if (returnOnFirstError) return errors;
-    }
-
-    // Date
-    const date = postData.date;
-    if (!validateDate(date)) {
-        errors.date = 'Date must be a valid date.';
-        if (returnOnFirstError) return errors;
-    }
-
-    // Is Visible
-    const isVisible = postData.isVisible;
-    if (!validateIsVisible(isVisible)) {
-        errors.isVisible = 'Is Visible must be a boolean.';
         if (returnOnFirstError) return errors;
     }
 
