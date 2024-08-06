@@ -8,11 +8,11 @@ function validatePostId(postId) {
 }
 
 function validateTitle(title) {
-    return typeof title === 'string' && title.trim().length > 0 && title.length <= 100;
+    return typeof title === 'string' && title.trim().length > 0 && title.length <= 255;
 }
 
 function validateContent(content) {
-    return typeof content === 'string' && content.trim().length > 0;
+    return typeof content === 'string' && content.trim().length > 0 && content.length <= 1023;
 }
 
 function validateDate(date) {
@@ -29,14 +29,14 @@ function validatePost(postData, returnOnFirstError = false) {
     // Title
     const title = postData.title;
     if (!validateTitle(title)) {
-        errors.title = 'Title must be a non-empty string.';
+        errors.title = 'Title must be a non-empty string and contains at most 255 characters.';
         if (returnOnFirstError) return errors;
     }
 
     // Content
     const content = postData.content;
     if (!validateContent(content)) {
-        errors.content = 'Content must be a non-empty string.';
+        errors.content = 'Content must be a non-empty string and contains at most 1023 characters.';
         if (returnOnFirstError) return errors;
     }
 
