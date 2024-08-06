@@ -1,11 +1,15 @@
 require('dotenv').config()
 const express = require('express');
 const session = require('express-session');
+var https = require('https');
+var http = require('http');
+const fs = require('fs');
 const MySQLStore = require('express-mysql-session')(session)
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const multer = require('multer');
 const port = 3000;
+const httpsport = 80;
 const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -17,6 +21,16 @@ const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
 const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
 const {handleError} = require('./error-handler')
+
+// https
+// Load SSL certificate and key
+
+var options = {
+	key: fs.readFileSync('key/client-key.pem'),
+	cert: fs.readFileSync('key/client-cert.cert')
+  };
+
+
 
 //max age of a session in milliseconds
 const maxAge= 6000000
@@ -332,7 +346,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	if(validationErrors !== true){
 		return res.status(400).json({ errors: validationErrors });
 	}
-	
+
 	const postData ={
 		id: req.body.postId,
 		title: req.body.title,
@@ -515,6 +529,14 @@ app.get('/csrfToken', authenticateUser, async(req,res)=>{
 	const token = generateCsrfToken(id)
 	return res.status(200).json({csrfToken:token})
 })
-app.listen(port, () => {
+// app.listen(port, () => {
+// 	console.log(`Server is running on http://localhost:${port}`);
+// });
+
+http.createServer(app).listen(port, () => {
 	console.log(`Server is running on http://localhost:${port}`);
+});
+
+https.createServer(options, app).listen(httpsport, () => {
+	console.log(`Server is running on https://localhost:${httpsport}`);
 });
