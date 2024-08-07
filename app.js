@@ -293,19 +293,17 @@ app.post('/logout', upload.none(), async(req, res, next)=>{
 })
 
 app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res) => {
-	
-	const { title, content } = req.body;
-	const validationErrors = validatePost({title, content})
-	if(validationErrors !== true){
-		return res.status(400).json({ errors: validationErrors });
-	}
-
 	const user = req.session.user
 	const postData = {
 		user: user.id,
 		title: req.body.title,
 		content: req.body.content,
     }
+
+	const validationErrors = validatePost(postData, true)
+	if(validationErrors !== true){
+		return res.status(400).json(validationErrors);
+	}
 
 	createPost(postData).then(result => {
 		logger.info("Created post by " + user.id + ', post id: ' + result)
@@ -339,27 +337,18 @@ app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	})
 })
 app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) => {
-    const { title, content } = req.body;
-	const validationErrors = validatePost({title, content})
-	if(validationErrors !== true){
-		return res.status(400).json({ errors: validationErrors });
-	}
-
 	const postData ={
-		id: req.body.postId,
+		postId: req.body.postId,
 		title: req.body.title,
 		content: req.body.content
 	}
-	// TODO: validate all fields
-	// const validationErrors = validatePost(postData);
-	// if (validationErrors === true) {
-		
-	// }else{
-	// 	return res.status(400).json({ errors: validationErrors });
-	// }
+
+	const validationErrors = validatePost(postData, true, true)
+	if(validationErrors !== true){
+		return res.status(400).json(validationErrors);
+	}
 
 	const user = req.session.user
-	
 	updatePostInfo(postData, user.id).then(result=>{
 		logger.info("Update post " + req.body.postId + " by " + user.id)
 		res.status(200).send()

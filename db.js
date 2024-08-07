@@ -514,7 +514,6 @@ const createPost = ({user,title, content}) => {
 
 			const query = 'INSERT INTO post (user, title, content, isVisible) VALUES (?,  ?, ?, true)'
 			db.execute(query, [user, title, content], (err, results) =>{
-				console.log(results)
 				if(err){
 					return db.rollback(()=>{
 						return reject(err)

@@ -56,11 +56,13 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="newPostTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="newPostTitle" name="title" required>
+                        <input type="text" class="form-control" id="title" name="title" required>
+						<div class="invalid-feedback" id="titleError"></div>
                     </div>
                     <div class="mb-3">
                         <label for="newPostContent" class="form-label">Content</label>
-                        <textarea class="form-control" id="newPostContent" name="content" rows="4" required></textarea>
+                        <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+						<div class="invalid-feedback" id="contentError"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -85,11 +87,13 @@
                     <input type="hidden" id="postId" name="postId">
                     <div class="mb-3">
                         <label for="postTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="postTitle" name="title" required>
+                        <input type="text" class="form-control" id="edititle" name="title" required>
+						<div class="invalid-feedback" id="edittitleError"></div>
                     </div>
                     <div class="mb-3">
                         <label for="postContent" class="form-label">Content</label>
-                        <textarea class="form-control" id="postContent" name="content" rows="4" required></textarea>
+                        <textarea class="form-control" id="editcontent" name="content" rows="4" required></textarea>
+						<div class="invalid-feedback" id="editcontentError"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -125,7 +129,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="./assets/js/response-handler.js"></script>
-
+<script src="./assets/js/post-validation.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const editPostModal = new bootstrap.Modal(document.getElementById('editPostModal'));
@@ -175,27 +179,35 @@
         createPostForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const formData = new FormData(createPostForm);
+                document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+                document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
+				const validationResult = validatePost(formData)	
+				if (validationResult===true){
+					try{
+						const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
+						if (handleResponse(csrfResponse)) return;
+						const csrfJson = await csrfResponse.json();
 
-                try{
-                    const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
-                    if (handleResponse(csrfResponse)) return;
-                    const csrfJson = await csrfResponse.json();
+						const response = await fetch('/createPost', {
+							method: 'POST',
+							body: formData,
+							headers:{"csrfToken":csrfJson.csrfToken}
+						});
 
-                    const response = await fetch('/createPost', {
-                        method: 'POST',
-                        body: formData,
-                        headers:{"csrfToken":csrfJson.csrfToken}
-                    });
-
-                    if (handleResponse(response)) return;
-                    if (!response.ok) {
-                        alert(await response.text());
-                    } else {
-                        createPostModal.hide();
-                        window.location.reload();
-                    }
-                }
-                catch (error){console.log(error)}
+						if (handleResponse(response)) return;
+						if (!response.ok) {
+                            const errors = await response.json();
+							displayPostErrors(document, errors)
+							/* alert(await response.text()); */
+						} else {
+							createPostModal.hide();
+							window.location.reload();
+						}
+					}
+					catch (error){console.log(error)}
+				}else{
+					displayPostErrors(document, validationResult)
+				}
         });
 
         deletePostForm.addEventListener('submit', async function(event){
@@ -227,6 +239,9 @@
         editPostForm.addEventListener('submit', async function(event){
             event.preventDefault();
             const formData = new FormData();
+
+			document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+			document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
             // FIXME: have a checker if the values are valid
             formData.append('postId', postId.value);
             formData.append('title', postTitle.value);
@@ -237,27 +252,33 @@
             console.log('2Post Title:', postTitle.value);
             console.log('3Post Content:', postContent.value);
 
+			document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+			document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
 
-            const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
-            if(handleResponse(csrfResponse))return;
-            const csrfJson = await csrfResponse.json()
-            const response = await fetch('/updatePostInfo', {
-                method: 'POST',
-                body: formData,
-                headers:{"csrfToken":csrfJson.csrfToken}
-            });
+			const validationResult = validatePost(formData, false, true)	
+			if(validationResult===true){
+				const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+				if(handleResponse(csrfResponse))return;
+				const csrfJson = await csrfResponse.json()
+				const response = await fetch('/updatePostInfo', {
+					method: 'POST',
+					body: formData,
+					headers:{"csrfToken":csrfJson.csrfToken}
+				});
 
-            if(handleResponse(response)) return;
-            if (!response.ok) {
-				alert(await response.text())
-            } else {
-                // Close the modal
-                editPostModal.hide();
-                // FIXME: idk how to update values in the frontend so i just refresh
-                window.location.reload();
-                
-            }
-
+				if(handleResponse(response)) return;
+				if (!response.ok) {
+					const errors = await response.json();
+					displayPostErrors(document, errors, true)
+				} else {
+					// Close the modal
+					editPostModal.hide();
+					// FIXME: idk how to update values in the frontend so i just refresh
+					window.location.reload();
+				}
+			}else{
+				displayPostErrors(document, validationResult, true)
+			}
         })
 
     });
