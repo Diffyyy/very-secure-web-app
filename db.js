@@ -332,7 +332,7 @@ const banUser = (id, user) =>{
 }
 
 // For editing posts- updates post
-const updatePostInfo = ({ id, title, content, date }, user) => {
+const updatePostInfo = ({ id, title, content }, user) => {
     return new Promise((resolve, reject) => {
         // Begin transaction
         db.beginTransaction(err => {
@@ -354,8 +354,8 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
 				
 				// Check iff user owns the post
 				if(postOwnerId === user){
-					const updateQuery = 'UPDATE post SET title = ?, content = ?, date = ? WHERE id = ?'
-					db.execute(updateQuery, [title, content, date, id], (err) =>{
+					const updateQuery = 'UPDATE post SET title = ?, content = ?, date = CURRENT_TIMESTAMP WHERE id = ?'
+					db.execute(updateQuery, [title, content, id], (err) =>{
 						if (err) {
 							return db.rollback(() => reject(err));
 						}
@@ -379,8 +379,8 @@ const updatePostInfo = ({ id, title, content, date }, user) => {
 							return db.rollback(() => reject(new Error('User not authorized')));
 						}
 						else{
-							const updateQuery = 'UPDATE post SET title = ?, content = ?, date = ? WHERE id = ?'
-							db.execute(updateQuery, [title, content, date, id], (err) =>{
+							const updateQuery = 'UPDATE post SET title = ?, content = ?, date = CURRENT_TIMESTAMP WHERE id = ?'
+							db.execute(updateQuery, [title, content, id], (err) =>{
 								if (err) {
 									return db.rollback(() => reject(err));
 								}
@@ -506,14 +506,15 @@ const addUser = ({ firstname, lastname, email, number,age, password, pfp}) => {
 	})
 }
 
-const createPost = ({user, date, title, content}) => {
+const createPost = ({user,title, content}) => {
 	return new Promise((resolve, reject) => {
 		return db.beginTransaction(err => {
 
 			if (err) {return reject(err);}
 
-			const query = 'INSERT INTO post (user, date, title, content, isVisible) VALUES (?, ?, ?, ?, true)'
-			db.execute(query, [user, date, title, content], (err) =>{
+			const query = 'INSERT INTO post (user, title, content, isVisible) VALUES (?,  ?, ?, true)'
+			db.execute(query, [user, title, content], (err, results) =>{
+				console.log(results)
 				if(err){
 					return db.rollback(()=>{
 						return reject(err)
@@ -525,7 +526,7 @@ const createPost = ({user, date, title, content}) => {
 							reject(err)
 						})
 					}
-					resolve("Successfully added post");
+					resolve(results.insertId);
 				});
 			});
 		});
