@@ -340,7 +340,8 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const postData ={
 		postId: req.body.postId,
 		title: req.body.title,
-		content: req.body.content
+		content: req.body.content,
+
 	}
 
 	const validationErrors = validatePost(postData, true, true)

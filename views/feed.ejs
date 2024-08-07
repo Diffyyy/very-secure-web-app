@@ -55,12 +55,12 @@
             <form id="createPostForm" method="POST">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="newPostTitle" class="form-label">Title</label>
+                        <label for="title" class="form-label">Title</label>
                         <input type="text" class="form-control" id="title" name="title" required>
 						<div class="invalid-feedback" id="titleError"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="newPostContent" class="form-label">Content</label>
+                        <label for="content" class="form-label">Content</label>
                         <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
 						<div class="invalid-feedback" id="contentError"></div>
                     </div>
@@ -86,12 +86,12 @@
                 <div class="modal-body">
                     <input type="hidden" id="postId" name="postId">
                     <div class="mb-3">
-                        <label for="postTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="edititle" name="title" required>
+                        <label for="edittitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="edittitle" name="title" required>
 						<div class="invalid-feedback" id="edittitleError"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="postContent" class="form-label">Content</label>
+                        <label for="editcontent" class="form-label">Content</label>
                         <textarea class="form-control" id="editcontent" name="content" rows="4" required></textarea>
 						<div class="invalid-feedback" id="editcontentError"></div>
                     </div>
@@ -148,8 +148,8 @@
                 var postDate = this.getAttribute('data-post-date'); // Optional: if you need the date
 
                 document.querySelector('#editPostModal #postId').value = postId;
-                document.querySelector('#editPostModal #postTitle').value = postTitle;
-                document.querySelector('#editPostModal #postContent').value = postContent;
+                document.querySelector('#editPostModal #edittitle').value = postTitle;
+                document.querySelector('#editPostModal #editcontent').value = postContent;
                 // document.querySelector('#editPostModal #postDate').value = postDate; // Optional
             });
         });
@@ -244,13 +244,13 @@
 			document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
             // FIXME: have a checker if the values are valid
             formData.append('postId', postId.value);
-            formData.append('title', postTitle.value);
-            formData.append('content', postContent.value);
-
-            // Log or use these values as needed
-            console.log('1Post ID:', postId.value);
-            console.log('2Post Title:', postTitle.value);
-            console.log('3Post Content:', postContent.value);
+            formData.append('title', edittitle.value);
+            formData.append('content', editcontent.value);
+			
+            /* // Log or use these values as needed */
+            /* console.log('1Post ID:', postId.value); */
+            /* console.log('2Post Title:', postTitle.value); */
+            /* console.log('3Post Content:', postContent.value); */
 
 			document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
 			document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
@@ -258,8 +258,10 @@
 			const validationResult = validatePost(formData, false, true)	
 			if(validationResult===true){
 				const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+
 				if(handleResponse(csrfResponse))return;
 				const csrfJson = await csrfResponse.json()
+
 				const response = await fetch('/updatePostInfo', {
 					method: 'POST',
 					body: formData,

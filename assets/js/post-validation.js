@@ -1,10 +1,5 @@
-// Define validation functions
-function validateUserId(userId) {
-    return Number.isInteger(userId) && userId > 0; // Assuming userId is a positive integer
-}
-
 function validatePostId(postId) {
-    return Number.isInteger(postId) && postId > 0; // Assuming postId is a positive integer
+	return (typeof postId) ==='string' && (postId==='0'  || /^[1-9]\d*$/.test(postId))
 }
 
 function validateTitle(title) {
@@ -67,7 +62,6 @@ function displayPostErrors(document, errors, isEdit = false) {
 // Check if we are in a Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        validateUserId,
         validatePostId,
         validateTitle,
         validateContent,

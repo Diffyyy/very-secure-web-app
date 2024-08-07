@@ -332,7 +332,7 @@ const banUser = (id, user) =>{
 }
 
 // For editing posts- updates post
-const updatePostInfo = ({ id, title, content }, user) => {
+const updatePostInfo = ({ postId, title, content }, user) => {
     return new Promise((resolve, reject) => {
         // Begin transaction
         db.beginTransaction(err => {
@@ -342,7 +342,7 @@ const updatePostInfo = ({ id, title, content }, user) => {
 			
 			// Check if the post exists and if the user has permission to edit it
 			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
-			db.execute(checkExistingQuery, [id], (err, results)=>{
+			db.execute(checkExistingQuery, [postId], (err, results)=>{
 				if (err) {
                     return db.rollback(() => reject(err));
                 }
@@ -355,7 +355,7 @@ const updatePostInfo = ({ id, title, content }, user) => {
 				// Check iff user owns the post
 				if(postOwnerId === user){
 					const updateQuery = 'UPDATE post SET title = ?, content = ?, date = CURRENT_TIMESTAMP WHERE id = ?'
-					db.execute(updateQuery, [title, content, id], (err) =>{
+					db.execute(updateQuery, [title, content, postId], (err) =>{
 						if (err) {
 							return db.rollback(() => reject(err));
 						}
@@ -376,7 +376,7 @@ const updatePostInfo = ({ id, title, content }, user) => {
 							return reject(err);
 						}
 						if(results.length <= 0){
-							return db.rollback(() => reject(new Error('User not authorized')));
+							return db.rollback(() => reject(new Error('User not authorized to edit post')));
 						}
 						else{
 							const updateQuery = 'UPDATE post SET title = ?, content = ?, date = CURRENT_TIMESTAMP WHERE id = ?'
