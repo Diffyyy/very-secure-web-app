@@ -9,7 +9,6 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const multer = require('multer');
 const port = 3000;
-const httpsport = 80;
 const app = express();
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
@@ -92,9 +91,9 @@ app.use(logBeforeSession)
 //session middleware is used for all routes
 app.use(session({
 	secret: process.env.SESSION_SECRET,
-	resave: false, //don't resave cookie to database on every request
-	saveUninitialized: false, //don't save session with no user
-	cookie: {maxAge: maxAge, sameSite:'strict' }, //use strict sameSite to prevent CSRF
+	resave: true, //don't resave cookie to database on every request
+	saveUninitialized: true, //don't save session with no user
+	cookie: {maxAge: maxAge, secure:true, httpOnly: true}, //use strict sameSite to prevent CSRF
 	store: sessionStore,
 
 	name:'very-secure-web-app.id'//name of cookie for session token
@@ -304,13 +303,12 @@ app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	const user = req.session.user
 	const postData = {
 		user: user.id,
-		date: req.body.date,
 		title: req.body.title,
 		content: req.body.content,
     }
 
 	createPost(postData).then(result => {
-		logger.info("Created post by " + user.id)
+		logger.info("Created post by " + user.id + ', post id: ' + result)
 		res.status(200).send()
 	}).catch(err=>{
 		handleError(err)
@@ -350,8 +348,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const postData ={
 		id: req.body.postId,
 		title: req.body.title,
-		content: req.body.content,
-		date: req.body.date, // Or use req.body.date if you're passing it from the form
+		content: req.body.content
 	}
 	// TODO: validate all fields
 	// const validationErrors = validatePost(postData);
@@ -414,7 +411,7 @@ app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.non
 })
 
 
-app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req,res,next)=>{
+app.post('/updateProfile', authenticateUser,verifyCsrfTokenMiddleware,  upload.none(), async(req,res,next)=>{
 	//validate updateProfile inputs
 	const validationResult = validateForm(req.body)	
 	req.body.id = req.session.user.id
@@ -523,6 +520,7 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  a
 		}
 	})
 })
+
 app.get('/csrfToken', authenticateUser, async(req,res)=>{
 	//responds with single-use token for action, prevents CSRF 
 	const id = req.session.user.id
@@ -533,10 +531,6 @@ app.get('/csrfToken', authenticateUser, async(req,res)=>{
 // 	console.log(`Server is running on http://localhost:${port}`);
 // });
 
-http.createServer(app).listen(port, () => {
-	console.log(`Server is running on http://localhost:${port}`);
-});
-
-https.createServer(options, app).listen(httpsport, () => {
-	console.log(`Server is running on https://localhost:${httpsport}`);
+https.createServer(options, app).listen(port, () => {
+	console.log(`Server is running on https://localhost:${port}`);
 });

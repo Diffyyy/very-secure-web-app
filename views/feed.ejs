@@ -174,9 +174,7 @@
 
         createPostForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
-                const postDate = formatToMySQLDate(new Date());
                 const formData = new FormData(createPostForm);
-                formData.append('date', postDate);
 
                 try{
                     const csrfResponse = await fetch('/csrfToken', { method: 'GET' });
@@ -228,13 +226,11 @@
 
         editPostForm.addEventListener('submit', async function(event){
             event.preventDefault();
-            const postDate = formatToMySQLDate(new Date());
             const formData = new FormData();
             // FIXME: have a checker if the values are valid
             formData.append('postId', postId.value);
             formData.append('title', postTitle.value);
             formData.append('content', postContent.value);
-            formData.append('date', postDate)
 
             // Log or use these values as needed
             console.log('1Post ID:', postId.value);
