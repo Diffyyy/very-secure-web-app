@@ -32,13 +32,12 @@ var options = {
 
 
 //max age of a session in milliseconds
-const maxAge= 6000000
-//Initialize mysql database for storing sessions
+const timeout = 7200000
+//Initialize mysql database for storing essions
 const sessionStore = new MySQLStore({
 	//remove expired sessions from database every 60000 milliseconds
-	checkExpirationInterval:60000,
-	expiration:maxAge,
-	disableTouch:true //disables session expiry from being reset on every user request
+	checkExpirationInterval:timeout,
+	disableTouch:true // absolute timeout
 }, db)
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -83,7 +82,6 @@ function authenticateUser(req,res,next){
 		})
 	}else{
 		//user has no session token, or session has already expired
-		
 		res.status(408).render('index')
 	}
 }
@@ -91,10 +89,10 @@ app.use(logBeforeSession)
 
 //session middleware is used for all routes
 app.use(session({
-	secret: process.env.SESSION_SECRET,
+	secret: process.env.SESSION_SECRET, // secret for signing cookie
 	resave: false, //don't resave cookie to database on every request
 	saveUninitialized: false, //don't save session without  user
-	cookie: {maxAge: maxAge, secure:true, httpOnly: true, sameSite: 'strict'}, //use strict sameSite to prevent CSRF
+	cookie: {maxAge: timeout, secure:true, httpOnly: true, sameSite: 'strict'}, //use strict sameSite to prevent CSRF
 	store: sessionStore,
 
 	name:'very-secure-web-app.id'//name of cookie for session token
@@ -282,7 +280,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	}
 
 })
-app.post('/logout', authenticateUser, upload.none(), async(req, res, next)=>{
+app.post('/logout', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next)=>{
 	temp = req.session.user
 	
 	//destroy session of user and delete from  database

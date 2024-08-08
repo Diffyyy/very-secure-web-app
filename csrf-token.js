@@ -1,5 +1,6 @@
 require('dotenv').config()
 const crypto = require('crypto');
+const {handleError} = require('./error-handler')
 
 // Secret key for HMAC
 const secretKey = process.env.CSRF_SECRET 
@@ -27,28 +28,28 @@ function generateCsrfToken(userId) {
 
 function verifyCsrfToken(userId, tokenWithSignature){
 	if(!tokenWithSignature){
-		console.log('no token and signature')
+		handleError(new Error('no token and signature'), userId)
 		return false
 	}
 	if (!tokens.get(userId)){
-		console.log("token does not exist for userId")
+		handleError(new Error('token does not exist'), userId)
 		return false
 	}
 	
 	const period = tokenWithSignature.indexOf('.')	
 	//no period was found
 	if(period===-1){
-		console.log("no signature")
+		handleError(new Error('no signature'), userId)
 		return false;
 	}
 	const csrfToken = tokenWithSignature.substring(0, period)
 	const signature = tokenWithSignature.substring(period+1)
 	if (!csrfToken){
-		console.log("no token")
+		handleError(new Error('no token'), userId)
 		return false
 	}
 	if(!signature){
-		console.log("no signature")
+		handleError(new Error('no signature'), userId)
 		return false
 	}
 	const hmac = crypto.createHmac('sha256', secretKey);
@@ -56,12 +57,12 @@ function verifyCsrfToken(userId, tokenWithSignature){
 	const expectedSignature = hmac.digest('hex');
 	//verify if signature is equal to expected signature
 	if (signature!==expectedSignature) {
-		console.log("token is tampered")
+		handleError(new Error('token is tampered'), userId)
 		return false;
 	}
 	//verify if csrfToken corresponds to correct user
 	if (tokens.get(userId).token!==tokenWithSignature){
-		console.log("user id and csrfToken mismatch")
+		handleError(new Error('user id and csrfToken mismatch'), userId)
 		return false;
 	}
 	//consume single-use csrf token

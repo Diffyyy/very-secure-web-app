@@ -72,7 +72,6 @@
         </div>
         <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
         <button type="button" class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change Password</button>
-        <button type="button" class="btn mt-3" data-bs-toggle="modal" data-bs-target="#createPostModal">Create Post</button>
         <% if (isAdmin) { %>
             <button type="button" class="btn mt-3" data-bs-toggle="modal" data-bs-target="#banUserModal">Ban Users</button>
         <% } %>
@@ -209,9 +208,15 @@
         const banUserModal = new bootstrap.Modal(document.getElementById('banUserModal'))
         const banUserForm = document.getElementById('banUserForm');
         // Logout button click event handler
-        logoutButton.addEventListener('click', function() {
-            fetch('/logout', { method: 'POST' })
+        logoutButton.addEventListener('click', async function() {
+
+			const csrfResponse = await fetch('/csrfToken', {method: 'GET'})
+			if(handleResponse(csrfResponse))return;
+			const csrfJson = await csrfResponse.json()
+            fetch('/logout', { method: 'POST',headers:{"csrfToken":csrfJson.csrfToken} })
                 .then(response => {
+					if(handleResponse(response))return;
+					alert('Logged out')
 					window.location.replace('/')
                 })
                 .catch(error => {
