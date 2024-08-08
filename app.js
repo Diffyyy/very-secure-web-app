@@ -35,7 +35,7 @@ var options = {
 const timeout = 7200000
 //Initialize mysql database for storing essions
 const sessionStore = new MySQLStore({
-	//remove expired sessions from database every 60000 milliseconds
+	//remove expired sessions from database every timeout milliseconds
 	checkExpirationInterval:timeout,
 	disableTouch:true // absolute timeout
 }, db)
