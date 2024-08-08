@@ -1,5 +1,5 @@
-function validatePostId(postId) {
-	return (typeof postId) ==='string' && (postId==='0'  || /^[1-9]\d*$/.test(postId))
+function validateId(postId) {
+	return (typeof postId) ==='string' && (/^[1-9]\d*$/.test(postId))
 }
 
 function validateTitle(title) {
@@ -8,11 +8,6 @@ function validateTitle(title) {
 
 function validateContent(content) {
     return typeof content === 'string' && content.trim().length > 0 && content.length <= 1023;
-}
-
-function validateDate(date) {
-    const parsedDate = new Date(date);
-    return !isNaN(parsedDate.getTime());
 }
 
 function validateIsVisible(isVisible) {
@@ -37,7 +32,7 @@ function validatePost(postData, returnOnFirstError = false, isEdit = false) {
     }
 	if (isEdit){
 		const postId = isForm?postData.get('postId'):postData.postId
-		if(!validatePostId(postId)){
+		if(!validateId(postId)){
 			errors.postId = 'Invalid post'
 			if (returnOnFirstError)return errors;
 		}
@@ -62,10 +57,9 @@ function displayPostErrors(document, errors, isEdit = false) {
 // Check if we are in a Node.js environment
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        validatePostId,
+        validateId,
         validateTitle,
         validateContent,
-        validateDate,
         validateIsVisible,
         validatePost,
         displayPostErrors

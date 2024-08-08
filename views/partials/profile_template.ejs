@@ -340,12 +340,14 @@
                     method: 'POST',
                     headers:{"csrfToken":csrfJson.csrfToken}
                 });
+				console.log(response)
                 if(handleResponse(response)) return;
                 if (response.ok) {
                     const userList = await response.json();
                     populateUserModal(userList)
                 } else {
-					alert(await response.text())
+					alert('Unkown error')
+					/* alert(await response.text()) */
                 }
             })  
         })
@@ -381,7 +383,8 @@
                     });
                     if(handleResponse(response)) return;
                     if (!response.ok) {
-						alert(await response.text())
+						alert('Unkown error')
+						/* alert(await response.text()) */
                     } else {
                         // Close the modal
                         // FIXME: idk how to update values in the frontend so i just refresh

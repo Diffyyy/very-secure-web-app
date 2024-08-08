@@ -2,9 +2,9 @@
   "name": "very-secure-web-app",
   "version": "1.0.0",
   "description": "yes it's very secure",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "run": "nodemon app.js"
+    "run": "node app.js"
   },
   "keywords": [],
   "author": "",

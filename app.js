@@ -18,7 +18,7 @@ const {generateCsrfToken, verifyCsrfTokenMiddleware} = require('./csrf-token')
 const {db, addUser, checkUser, updateUser, getUserInfo, getUserPass, updateUserPass, updateUserProfilePicture, getUserProfilePicture, getAllPosts, updatePostInfo, createPost, deletePost, getUserList, banUser, checkIfBanned} = require('./db');
 const {deleteFile, validateImage} = require('./files')
 const {validateForm, validatePassword, validateEmail} = require('./assets/js/profile-validation');
-const{validateTitle, validateContent, validatePost} = require('./assets/js/post-validation');
+const{validateTitle, validateContent, validatePost, validateId} = require('./assets/js/post-validation');
 const {handleError} = require('./error-handler')
 
 // https
@@ -79,7 +79,7 @@ function authenticateUser(req,res,next){
 			}
 		}).catch(err => {
 			handleError(err)
-			res.status(500).send('Internal Server Error');
+			res.status(520).send('Unknown error');
 		})
 	}else{
 		//user has no session token, or session has already expired
@@ -93,7 +93,7 @@ app.use(logBeforeSession)
 app.use(session({
 	secret: process.env.SESSION_SECRET,
 	resave: false, //don't resave cookie to database on every request
-	saveUninitialized: false, //don't save session with no user
+	saveUninitialized: false, //don't save session without  user
 	cookie: {maxAge: maxAge, secure:true, httpOnly: true, sameSite: 'strict'}, //use strict sameSite to prevent CSRF
 	store: sessionStore,
 
@@ -250,8 +250,12 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 								return res.status(520).send()
 							}
 
+
+							// store user information in session, typically a user id
 							req.session.user = {id: user.id}
-							//correlate generated session token with id of user, and save in database
+							
+							// save the session before redirection to ensure page
+							// load does not happen before session is saved
 							req.session.save(function (err) {
 								if (err){
 									handleError(err)
@@ -316,12 +320,13 @@ app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 	})
 });
 
-
-
 app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async (req, res, next) =>{
 
 	// TODO: Validate fields
 	const user = req.session.user
+	if(!validateId(req.body.postId)){
+		return res.status(400).send('Invalid post id')
+	}
 
 	deletePost(req.body.postId, user.id).then(result =>{
 		logger.info("Delete post " + req.body.postId + " by " + user.id)
@@ -339,15 +344,14 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const postData ={
 		postId: req.body.postId,
 		title: req.body.title,
-		content: req.body.content,
-
 	}
-
+	if(!validateId(req.body.postId)){
+		return res.status(400).send('Invalid post id')
+	}
 	const validationErrors = validatePost(postData, true, true)
 	if(validationErrors !== true){
 		return res.status(400).json(validationErrors);
 	}
-
 	const user = req.session.user
 	updatePostInfo(postData, user.id).then(result=>{
 		logger.info("Update post " + req.body.postId + " by " + user.id)
@@ -367,6 +371,9 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(), async(req, res, next) => {
 	const user = req.session.user
 	// console.log(req.body.userId)
+	if(!validateId(req.body.userId))	{
+		return res.status(400).send('Invalid user id')
+	}
 	banUser(req.body.userId, user.id).then(result => {
 		logger.info("Ban user " + req.body.userId + " by " + user.id)
 		res.status(200).json(result)
@@ -483,6 +490,7 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  a
 	//check first if there is error in uploading pfp
 	upload.single('newprofilepic')(req,res, async function(err){
 		if(err instanceof multer.MulterError){
+			handleError(err)
 			return res.status(400).json({newprofilepic: err.message});
 		}else if(err){
 			handleError(err)

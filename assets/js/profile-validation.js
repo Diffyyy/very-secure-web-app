@@ -22,11 +22,13 @@ function validatePassword(password) {
     return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_=+{};:,<.>\\?-]).{12,63}$/.test(password);
 }
 
+//return true if form has no errors, else return error messages
 function validateForm(formData, isSignup=false, returnOnFirstError = false) {
     const errors = {};
 
     // Profile Picture (optional for update)
 	
+	console.log(formData)
 	const isForm = formData instanceof FormData 
     if (isSignup) {
         const profilepic = isForm?formData.get('profilepic'):formData.profilepic

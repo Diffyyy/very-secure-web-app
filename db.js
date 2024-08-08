@@ -176,7 +176,6 @@ const deletePost = (id, user) =>{
 			// Check first if the post exists
 			const checkExistingQuery = 'SELECT user FROM post WHERE id = ?'
 			db.execute(checkExistingQuery, [id], (err, results)=>{
-
 				if(err){
 					return db.rollback(() => reject(err));
 				}

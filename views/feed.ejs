@@ -226,7 +226,7 @@
 
             if(handleResponse(response)) return;
             if (!response.ok) {
-				alert(await response.text())
+				alert('Unknown error')
             } else {
                 // Close the modal
                 editPostModal.hide();
