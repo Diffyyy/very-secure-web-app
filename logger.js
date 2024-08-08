@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Define the log file path
-const logFilePath = path.join(__dirname, 'logs.log');
+const logFilePath = path.join(__dirname, 'logs/logs.log');
 
 // Ensure the log file exists
 if (!fs.existsSync(logFilePath)) {

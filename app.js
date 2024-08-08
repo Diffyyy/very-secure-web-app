@@ -21,16 +21,7 @@ const {validateForm, validatePassword, validateEmail} = require('./assets/js/pro
 const{validateTitle, validateContent, validatePost, validateId} = require('./assets/js/post-validation');
 const {handleError} = require('./error-handler')
 
-// https
-// Load SSL certificate and key
-
-var options = {
-	key: fs.readFileSync('key/client-key.pem'),   // public key
-	cert: fs.readFileSync('key/client-cert.cert') // private key
-  };
-
-
-
+app.set('trust proxy', 1)
 //max age of a session in milliseconds
 const timeout = 7200000
 //Initialize mysql database for storing essions
@@ -344,6 +335,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const postData ={
 		postId: req.body.postId,
 		title: req.body.title,
+		content:req.body.content
 	}
 	if(!validateId(req.body.postId)){
 		return res.status(400).send('Invalid post id')
@@ -542,6 +534,6 @@ app.get('/csrfToken', authenticateUser, async(req,res)=>{
 // generate 2048 bit private key (2045 bits because minimum acc to multiple sources- should be viable until 2030)
 // Generate cert signing request - contains org details
 // generate self signed cert- uses csr and private key
-https.createServer(options, app).listen(port, () => {
-	console.log(`Server is running on https://localhost:${port}`);
-});
+app.listen(port, ()=>{
+	console.log(`Server started on port ${port}`)
+})
