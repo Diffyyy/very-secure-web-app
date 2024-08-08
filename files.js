@@ -12,19 +12,17 @@ async function validateImage(path){
 		//check magic number
 		if (!fileTypeResult || !fileTypeResult.mime.startsWith('image/')) {
 			deleteFile(path); // Delete the invalid file
-			return false
+			return new Error('Image has invalid image header')	
 		}
 		//try to resize image
 		try{
 			const resized = await sharp(fileBuffer).resize(100).toBuffer()
 		}catch(err){
-			handleError(err)
 			deleteFile(path)
-			return false
+			return err
 		}
 	}catch(err){
-		handleError(err)
-		return false
+		return err
 	}
 	return true
 }

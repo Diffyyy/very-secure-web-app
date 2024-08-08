@@ -56,7 +56,7 @@ const checkIfBanned = (id) =>{
 				return resolve(true)
 			}else{
 				//return false if user does not exist
-				handleError(new dbError('User is banned'), -1)
+				handleError(new dbError('User is banned', -1))
 				return resolve(false)
 			}
 		})
@@ -74,7 +74,7 @@ const checkUser = ({email})=>{
 				return resolve(results[0])
 			}else{
 				//return false if user does not exist
-				handleError(new dbError('Error getting user from email, id does not exist'), -1)
+				handleError(new dbError('Error getting user from email, id does not exist', -1), email)
 				return resolve(false)
 			}
 		})
@@ -275,6 +275,7 @@ const getUserList = (user) =>{
 
 
 // Ban hammer
+// id is target user to ban, user is id of the current user
 const banUser = (id, user) =>{
 	return new Promise((resolve, reject) => {
 		// Begin transaction

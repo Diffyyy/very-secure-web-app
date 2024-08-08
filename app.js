@@ -25,8 +25,8 @@ const {handleError} = require('./error-handler')
 // Load SSL certificate and key
 
 var options = {
-	key: fs.readFileSync('key/client-key.pem'),
-	cert: fs.readFileSync('key/client-cert.cert')
+	key: fs.readFileSync('key/client-key.pem'),   // public key
+	cert: fs.readFileSync('key/client-cert.cert') // private key
   };
 
 
@@ -78,7 +78,7 @@ function authenticateUser(req,res,next){
 				res.status(403).render('index')
 			}
 		}).catch(err => {
-			handleError(err)
+			handleError(err, req.session.user.id)
 			res.status(520).send('Unknown error');
 		})
 	}else{
@@ -122,7 +122,7 @@ app.get('/profile', authenticateUser, (req,res)=>{
 		}
 		res.render('user', {...user})
 	}).catch(err=>{
-		handleError(err)
+		handleError(err, req.session.user.id)
 		res.status(520).send('Error in fetching user')
 	})
 })
@@ -149,11 +149,11 @@ app.get('/',authenticateUser, (req, res) => {
 			})
 			res.render('feed',  {...user,posts})
 		}).catch(err=>{
-			handleError(err)
+			handleError(err, req.session.user.id)
 			res.status(520).send('Error in fetching posts')
 		})
 	}).catch(err=>{
-		handleError(err)
+		handleError(err, req.session.user.id)
 		res.status(520).send('Error in fetching user')
 	})
 });
@@ -173,14 +173,14 @@ app.get('/signup', (req, res) => {
 app.post('/signup', async (req, res) => {
 	//check first if there are errors with upload such as file is too large
 	upload.single('profilepic')(req,res, async function(err){
+		const { lastname, firstname, email, number,age, password, confirmpassword } = req.body;
+		const profilepic = req.file;
 		if(err instanceof multer.MulterError){
 			return res.status(400).json({profilepic: err.message});
 		}else if(err){
-			handleError(err)
+			handleError(err, `${email} signup`)
 			return res.status(400).json({profilepic: 'Unknown error'});
 		}
-		const { lastname, firstname, email, number,age, password, confirmpassword } = req.body;
-		const profilepic = req.file;
 		if (!profilepic) {
 			//if no input profile picture
 			return res.status(400).json({profilepic: 'Profile picture is required'});
@@ -204,7 +204,7 @@ app.post('/signup', async (req, res) => {
 					logger.info(email + " signed up.")
 					res.redirect('/login')
 				}).catch(err=>{ //change pfp path here
-					handleError(err)
+					handleError(err, `${email} signup`)
 					if(err.code===0){
 						return res.status(400).json({email: 'Email or number already existing', number: 'Email or number already existing'})
 					}
@@ -237,7 +237,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 
 				bcrypt.compare(password, user.password, function(err, result) {
 					if(err){
-						handleError(err)
+						handleError(err, `${email} login`)
 						return res.status(520).send()
 					}
 					if(result===true){
@@ -246,7 +246,8 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 						//generate new session token for user
 						req.session.regenerate(function (err) {
 							if (err) {
-								handleError(err)
+
+								handleError(err, `${email} login`)
 								return res.status(520).send()
 							}
 
@@ -258,7 +259,8 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 							// load does not happen before session is saved
 							req.session.save(function (err) {
 								if (err){
-									handleError(err)
+
+									handleError(err, `${email} login`)
 									return res.status(520).send()
 								} 
 								res.redirect('/')
@@ -270,7 +272,7 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					}
 				});
 			}).catch(err=>{
-				handleError(err)
+				handleError(err, `${email} login`)
 				return res.status(520).send()
 			})
 	}
@@ -280,13 +282,13 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 	}
 
 })
-app.post('/logout', upload.none(), async(req, res, next)=>{
+app.post('/logout', authenticateUser, upload.none(), async(req, res, next)=>{
 	temp = req.session.user
 	
 	//destroy session of user and delete from  database
 	req.session.destroy(function(err){
 		if (err){
-			handleError(err)
+			handleError(err, req.session.user.id)
 			res.status(520).send()
 		} 
 		logger.info(temp.id + " logged out")
@@ -312,7 +314,7 @@ app.post('/createPost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 		logger.info("Created post by " + user.id + ', post id: ' + result)
 		res.status(200).send()
 	}).catch(err=>{
-		handleError(err)
+		handleError(err, req.session.user.id)
 		if(err.code===0){
 			return res.status(400).send(err.message)
 		}
@@ -332,7 +334,7 @@ app.post('/deletePost', authenticateUser, verifyCsrfTokenMiddleware, upload.none
 		logger.info("Delete post " + req.body.postId + " by " + user.id)
 		res.status(200).send()
 	}).catch(err=>{
-		handleError(err)
+		handleError(err, req.session.user.id)
 		if(err.code===0){
 			return res.status(400).send(err.message)
 			// return res.status(400).json({number: err.message})
@@ -357,7 +359,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 		logger.info("Update post " + req.body.postId + " by " + user.id)
 		res.status(200).send()
 	}).catch(err=>{ 
-		handleError(err)
+		handleError(err, req.session.user.id)
 		if(err.code===0){
 			return res.status(400).send(err.message)
 			// return res.status(400).json({number: err.message})
@@ -378,7 +380,7 @@ app.post('/banUser', authenticateUser, verifyCsrfTokenMiddleware, upload.none(),
 		logger.info("Ban user " + req.body.userId + " by " + user.id)
 		res.status(200).json(result)
 	}).catch(err => {
-		handleError(err)
+		handleError(err, req.session.user.id)
 		if(err.code === 0){
 			return res.status(400).send(err.message)
 			// return res.status(400).json({number: err.message})
@@ -396,7 +398,7 @@ app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.non
 		logger.info("Get user list by " + user.id)
 		res.status(200).json(result)
 	}).catch(err => {
-		handleError(err)
+		handleError(err, req.session.user.id)
 		if(err.code === 0){
 			return res.status(400).send(err.message)
 			// return res.status(400).json({number: err.message})
@@ -418,7 +420,7 @@ app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware,  upload.
 				logger.info("Update user info " + req.body.id)
 				res.status(200).send()
 			}).catch(err=>{ 
-				handleError(err)
+				handleError(err, req.session.user.id)
 				if(err.code===0){
 					//input number already belongs to another user
 					return res.status(400).json({number: err.message})
@@ -452,7 +454,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 			//check if currentPassword is correct
 			bcrypt.compare(currentpassword, result, function(err, result) {
 				if(err){
-					handleError(err)
+					handleError(err, req.session.user.id)
 					return res.status(520).json({currentpassword: 'Unknown error'})
 				}
 				if(result===true){
@@ -464,7 +466,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 							//generate new session token 
 							req.session.regenerate(function(err){
 								if(err){
-									handleError(err)
+									handleError(err, req.session.user.id)
 									return res.status(520).json({currentpassword: 'Unknown error'})
 								}
 								req.session.user = {id: id}
@@ -472,7 +474,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 
 							})
 						}).catch(err=>{
-							handleError(err)
+							handleError(err, req.session.user.id)
 							return res.status(520).json({currentpassword: 'Unknown error'})
 						})
 				}else{
@@ -481,7 +483,7 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 				}
 			});
 		}).catch(err=>{
-			handleError(err)
+			handleError(err, req.session.user.id)
 			return res.status(520).json({currentpassword: 'Unknown error'})
 		})
 })
@@ -490,10 +492,10 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  a
 	//check first if there is error in uploading pfp
 	upload.single('newprofilepic')(req,res, async function(err){
 		if(err instanceof multer.MulterError){
-			handleError(err)
+			handleError(err, req.session.user.id)
 			return res.status(400).json({newprofilepic: err.message});
 		}else if(err){
-			handleError(err)
+			handleError(err, req.session.user.id)
 			return res.status(400).json({newprofilepic: 'Unknown error'});
 		}
 		const id = req.session.user.id
@@ -503,7 +505,8 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  a
 			return res.status(400).json({newprofilepic: 'Profile picture is required'});
 		}
 		const validImage = await validateImage(profilepic.path)
-		if(!validImage)	{
+		if(validImage !==true){
+			handleError(validImage, req.session.user.id)
 			return res.status(400).json({newprofilepic: 'Invalid image file'})
 		}else{
 			//first get old pfp of user
@@ -516,11 +519,11 @@ app.post('/updateProfilePicture', authenticateUser,verifyCsrfTokenMiddleware,  a
 							logger.info(id + " update profile picture.")
 							return res.status(200).json({newprofilepic:profilepic.path})
 						}).catch(err=>{
-							handleError(err)
+							handleError(err, req.session.user.id)
 							return res.status(520).json({newprofilepic:'Unknown error'})
 						})
 				}).catch(err=>{
-					handleError(err)
+					handleError(err, req.session.user.id)
 					return res.status(520).json({newprofilepic:'Unknown error'})
 				})
 		}
@@ -533,10 +536,14 @@ app.get('/csrfToken', authenticateUser, async(req,res)=>{
 	const token = generateCsrfToken(id)
 	return res.status(200).json({csrfToken:token})
 })
-// app.listen(port, () => {
-// 	console.log(`Server is running on http://localhost:${port}`);
-// });
 
+// openssl genrsa -out client-key.pem 2048
+// openssl req -new -key client-key.pem -out client.csr
+// openssl x509 -req -in client.csr -signkey client-key.pem -out client-cert.cert
+
+// generate 2048 bit private key (2045 bits because minimum acc to multiple sources- should be viable until 2030)
+// Generate cert signing request - contains org details
+// generate self signed cert- uses csr and private key
 https.createServer(options, app).listen(port, () => {
 	console.log(`Server is running on https://localhost:${port}`);
 });
