@@ -344,6 +344,7 @@ app.post('/updatePostInfo', authenticateUser, verifyCsrfTokenMiddleware, upload.
 	const postData ={
 		postId: req.body.postId,
 		title: req.body.title,
+		content: req.body.content
 	}
 	if(!validateId(req.body.postId)){
 		return res.status(400).send('Invalid post id')

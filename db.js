@@ -380,7 +380,7 @@ const updatePostInfo = ({ postId, title, content }, user) => {
 						}
 						else{
 							const updateQuery = 'UPDATE post SET title = ?, content = ?, date = CURRENT_TIMESTAMP WHERE id = ?'
-							db.execute(updateQuery, [title, content, id], (err) =>{
+							db.execute(updateQuery, [title, content, postId], (err) =>{
 								if (err) {
 									return db.rollback(() => reject(err));
 								}
