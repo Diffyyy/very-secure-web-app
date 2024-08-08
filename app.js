@@ -83,6 +83,7 @@ function authenticateUser(req,res,next){
 		})
 	}else{
 		//user has no session token, or session has already expired
+		
 		res.status(408).render('index')
 	}
 }
@@ -91,9 +92,9 @@ app.use(logBeforeSession)
 //session middleware is used for all routes
 app.use(session({
 	secret: process.env.SESSION_SECRET,
-	resave: true, //don't resave cookie to database on every request
-	saveUninitialized: true, //don't save session with no user
-	cookie: {maxAge: maxAge, secure:true, httpOnly: true}, //use strict sameSite to prevent CSRF
+	resave: false, //don't resave cookie to database on every request
+	saveUninitialized: false, //don't save session with no user
+	cookie: {maxAge: maxAge, secure:true, httpOnly: true, sameSite: 'strict'}, //use strict sameSite to prevent CSRF
 	store: sessionStore,
 
 	name:'very-secure-web-app.id'//name of cookie for session token
@@ -242,8 +243,6 @@ app.post('/login', loginLimiter, upload.none(), async(req, res)=>{
 					if(result===true){
 						//correct password
 						logger.info(user.id + " logged in.")
-
-
 						//generate new session token for user
 						req.session.regenerate(function (err) {
 							if (err) {
@@ -401,7 +400,7 @@ app.post('/getUserList', authenticateUser, verifyCsrfTokenMiddleware, upload.non
 })
 
 
-app.post('/updateProfile', authenticateUser,verifyCsrfTokenMiddleware,  upload.none(), async(req,res,next)=>{
+app.post('/updateProfile', authenticateUser, verifyCsrfTokenMiddleware,  upload.none(), async(req,res,next)=>{
 	//validate updateProfile inputs
 	const validationResult = validateForm(req.body)	
 	req.body.id = req.session.user.id
@@ -455,7 +454,16 @@ app.post('/changePassword',authenticateUser,verifyCsrfTokenMiddleware, upload.no
 					updateUserPass({id, pass})	
 						.then(result=>{
 							logger.info(id + " changed password.")
-							return res.status(200).send()
+							//generate new session token 
+							req.session.regenerate(function(err){
+								if(err){
+									handleError(err)
+									return res.status(520).json({currentpassword: 'Unknown error'})
+								}
+								req.session.user = {id: id}
+								return res.status(200).send()
+
+							})
 						}).catch(err=>{
 							handleError(err)
 							return res.status(520).json({currentpassword: 'Unknown error'})
